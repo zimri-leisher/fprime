@@ -1,11 +1,11 @@
 #ifndef __FPY_SEQUENCE_TYPES_HPP__
 #define __FPY_SEQUENCE_TYPES_HPP__
 #include <config/FpConfig.h>
+#include <Fw/Cmd/CmdArgBuffer.hpp>
 
 namespace Svc {
 
 namespace Fpy {
-
 
 struct Header {
   // the major version of the FSW
@@ -20,20 +20,18 @@ struct Header {
   // the number of input arguments to this sequence
   // these will become locals in the sequence
   U8 m_argumentCount;
-  // an array of size m_argumentCount mapping argument position to local
-  // variable count
-  U8* m_argArray;
 
+  // the number of statements in the sequence
   U16 m_statementCount;
+
+  enum {
+    SERIALIZED_SIZE = sizeof(U8) * 5 + sizeof(U16)
+  };
 };
 
 struct Statement {
-  U16 m_opcode;
-
-  // the number of bytes in m_argBuf
-  U16 m_argBufLen;
-  // an array of serialized command arguments
-  U8* m_argBuf;
+  FwOpcodeType m_opcode;
+  Fw::CmdArgBuffer m_args;
 };
 
 struct Footer {
@@ -42,6 +40,9 @@ struct Footer {
 
 struct Sequence {
   Header m_header;
+  // an array of size m_argumentCount mapping argument position to local
+  // variable count
+  U8* m_argArray;
   Statement* m_statementArray;
   Footer m_footer;
 };

@@ -172,6 +172,7 @@ SerializeStatus StringBase::deserialize(SerializeBufferBase& buffer) {
                   static_cast<FwAssertArgType>(maxSize));
         raw[actualSize] = 0;
     } else {
+        printf("deser string failed\n");
         // Deserialization failed: leave string unmodified, but ensure that it
         // is null-terminated
         raw[maxSize] = 0;
