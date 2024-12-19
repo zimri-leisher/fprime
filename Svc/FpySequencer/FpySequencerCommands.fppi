@@ -5,5 +5,10 @@ async command RUN(
                     ) \
     opcode 0
 
+async command OPEN(
+                      fileName: string size 240 @< The name of the sequence file
+                  ) \
+    opcode 1
+
 @ Logs via Events the state of each connected command sequencer
-async command LOG_STATUS() opcode 1
+async command LOG_STATUS() opcode 2

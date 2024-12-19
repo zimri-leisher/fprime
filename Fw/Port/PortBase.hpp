@@ -20,7 +20,7 @@ namespace Fw {
             void ovrTrace(bool ovr, bool trace); // !< override tracing for a particular port
 #endif
 
-            bool isConnected();
+            bool isConnected() const;
         protected:
             // Should only be accessed by derived classes
             PortBase(); // Constructor

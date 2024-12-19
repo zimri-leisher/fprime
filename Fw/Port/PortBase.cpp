@@ -38,7 +38,7 @@ namespace Fw {
 
     }
 
-    bool PortBase::isConnected() {
+    bool PortBase::isConnected() const {
         return m_connObj == nullptr?false:true;
     }
 

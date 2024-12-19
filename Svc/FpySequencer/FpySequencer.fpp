@@ -5,6 +5,9 @@ module Svc {
         include "FpySequencerCommands.fppi"
         include "FpySequencerTelemetry.fppi"
         include "FpySequencerEvents.fppi"
+        include "FpySequencerStateMachine.fppi"
+
+        state machine instance sequencer: StateMachine
 
         ###############################################################################
         # Standard AC Ports: Required for Channels, Events, Commands, and Parameters  #
