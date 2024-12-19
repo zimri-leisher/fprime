@@ -33,11 +33,19 @@ endmacro()
 ####
 # Macro `restrict_platforms`:
 #
-# Restricts a CMakeLists.txt file to a given list of platforms. This prevents usage on platforms for which the module
-# is incapable of being used and replaces the historical pattern of an if-tree detecting unsupported platforms.
+# Restricts a CMakeLists.txt file to a given list of supported platforms, toolchains, and features. This prevents
+# usage on platforms/toolchains  for which the module is incapable of being used and replaces the historical pattern of
+# an if-tree detecting unsupported platforms in most circumstances.
+#
+# Valid inputs include names of platforms (e.g. Linux), names of specific toolchains (e.g. aarch64-linux), and platform
+# supported feature sets (e.g. SOCKETS, which inspects the FPRIME_HAS_SOCKETS flag).
 #
 # Usage:
 #    restrict_platforms(Linux Darwin) # Restricts to Linux and Darwin platforms
+#        -or-
+#    restrict_platforms(Posix) # Restricts to posix systems
+#        -or-
+#    restrict_platforms(SOCKETS) # Restricts to platforms where FPRIME_HAS_SOCKETS is TRUE
 #
 # Args:
 #   ARGN: list of platforms that are supported
@@ -45,6 +53,16 @@ endmacro()
 macro(restrict_platforms)
     set(__CHECKER ${ARGN})
 
+    # Determine if any of the restrict-tos maps to a fprime feature flag of the form FPRIME_HAS_XYZ as set in the
+    # platform support file. If this feature is set and true, then the restriction block may pass.
+    set(__HAS_SUPPORTED_FEATURE FALSE)
+    foreach (__RESTRICTION IN LISTS __CHECKER)
+        string(TOUPPER "${__RESTRICTION}" __RESTRICTION_UPPER)
+        if (FPRIME_HAS_${__RESTRICTION_UPPER})
+            set(__HAS_SUPPORTED_FEATURE TRUE)
+            break()
+        endif()
+    endforeach()
     # Each of these empty if blocks are the valid-case, that is, the platform is supported.
     # However, the reason why this is necessary is that this function is a macro and not a function.
     # Macros copy-paste the code into the calling context. Thus, all these valid cases want to avoid calling return.
@@ -53,6 +71,9 @@ macro(restrict_platforms)
 
     if (FPRIME_TOOLCHAIN_NAME IN_LIST __CHECKER)
     elseif(FPRIME_PLATFORM IN_LIST __CHECKER)
+    # New style FPRIME_HAS_<FEATURE>
+    elseif(__HAS_SUPPORTED_FEATURE)
+    # Old style posix FPRIME_USE_POSIX
     elseif("Posix" IN_LIST __CHECKER AND FPRIME_USE_POSIX)
     else()
         get_module_name("${CMAKE_CURRENT_LIST_DIR}")
@@ -356,7 +377,7 @@ endfunction(register_fprime_executable)
 #
 # ### Standard fprime Deployment Example ###
 #
-# To create a standard fprime deployment, an the user must call `register_fprime_deployment()` after defining
+# To create a standard fprime deployment, the user must call `register_fprime_deployment()` after defining
 # SOURCE_FILES and MOD_DEPS.
 #
 # ```
@@ -482,7 +503,7 @@ endfunction(register_fprime_ut)
 #
 # This function allows users to register custom build targets into the build system.  These targets are defined in a
 # CMake file and consist of three functions that operate on different parts of the build: global, per-module, and
-# per-deployment. See: [Targets](targets.md).
+# per-deployment. See: [Targets](./target/target.md).
 #
 # This function takes in either a file path to a CMake file defining targets, or an short include path that accomplishes
 # the same thing. Note: make sure the directory is on the CMake include path to use the second form. The supplied file
@@ -550,7 +571,6 @@ endmacro(register_fprime_list_helper)
 # 1. Call one of `autocoder_setup_for_individual_sources()` or `autocoder_setup_for_multiple_sources()` from file scope
 # 2. Implement `<autocoder name>_is_supported(AC_POSSIBLE_INPUT_FILE)` returning true the autocoder processes given source 
 # 3. Implement `<autocoder name>_setup_autocode AC_INPUT_FILE)` to run the autocoder on files filter by item 2. 
-# See: [Autocoders](dev/autocoder_integration.md).
 #
 # This function takes in either a file path to a CMake file defining an autocoder target, or an short include path that accomplishes
 # the same thing. Note: make sure the directory is on the CMake include path to use the second form.
@@ -655,11 +675,10 @@ endfunction()
 
 #### Documentation links
 # Next Topics:
-#  - Setting Options: [Options](Options.md) are used to vary a CMake build.
-#  - Adding Deployments: [Deployments](deployment.md) create fprime builds.
+#  - Setting Options: [Options](options.md) are used to vary a CMake build.
 #  - Adding Modules: [Modules](module.md) register fprime Ports, Components, etc.
-#  - Creating Toolchains: [Toolchains](toolchain.md) setup standard CMake Cross-Compiling.
-#  - Adding Platforms: [Platforms](platform.md) help fprime set Cross-Compiling specific items.
-#  - Adding Targets: [Targets](targets.md) for help defining custom build targets
-#  - Implementation Packages Design: [Implementation Packages](/Design/package-implementor.md)
+#  - Creating Toolchains: [Toolchains](../../../user-manual/cmake/cmake-toolchains.md) setup standard CMake Cross-Compiling.
+#  - Adding Platforms: [Platforms](../../../user-manual/cmake/cmake-platforms.md) help fprime set Cross-Compiling specific items.
+#  - Adding Targets: [Targets](./target/target.md) for help defining custom build targets
+#  - Implementation Packages Design: [Implementation Packages](../../../user-manual/design/package-implementations.md)
 ####
