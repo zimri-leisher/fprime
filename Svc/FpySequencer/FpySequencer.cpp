@@ -96,7 +96,7 @@ void FpySequencer::Svc_FpySequencer_StateMachine_action_setSequenceFilePath(
     Svc_FpySequencer_StateMachine::Signal signal,  //!< The signal
     const Fw::StringBase& value                    //!< The value
 ) {
-  this->m_sequenceFilePath = value.toChar();
+  this->m_sequenceFilePath = value;
 }
 
 //! Implementation for action resetSequenceFilePath of state machine
@@ -119,7 +119,7 @@ void FpySequencer::Svc_FpySequencer_StateMachine_action_openSequenceFile(
     Svc_FpySequencer_StateMachine::Signal signal  //!< The signal
 ) {
   Os::File::Status status = this->m_sequenceFileObj.open(
-      this->m_sequenceFilePath, Os::File::OPEN_READ);
+      this->m_sequenceFilePath.toChar(), Os::File::OPEN_READ);
 
   if (status != Os::File::OP_OK) {
     if (status == Os::File::DOESNT_EXIST) {

@@ -162,7 +162,7 @@ class FpySequencer : public FpySequencerComponentBase {
   enum { CRC_INITIAL_VALUE = 0xFFFFFFFFU };
 
   // assigned by the user
-  const char* m_sequenceFilePath;
+  Fw::String m_sequenceFilePath;
   // created by opening the m_sequenceFilePath
   Os::File m_sequenceFileObj;
   // live running computation of CRC (updated as we read)

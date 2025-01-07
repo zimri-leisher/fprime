@@ -16,3 +16,9 @@ telemetry DispatchedCount: U32
 #@ The number of sequences completed.
 #telemetry CS_SequencesCompleted: U32 id 4
 #
+
+# todo
+#telemetry currentStatementOpcode: U32
+
+# can we name the state?
+#telemetry state: U32

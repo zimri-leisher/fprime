@@ -65,12 +65,16 @@ state machine StateMachine {
 
     state VALIDATION {
 
-        signal test
+        initial enter OPEN_FILE
 
-        entry do { openSequenceFile, readHeader, readBody, readFooter }
+        choice OPEN_FILE {
+            entry do openSequenceFile
+            if sequenceFileOpen
+        }
 
-        on test enter INVALID
-        on invalidCrc enter INVALID
+        entry do { validateSequence }
+
+        on invalidCrc do { incrementFailureCount, warnInvalidCrc } enter AVAILABLE
         on failureToOpen enter INVALID
         on finishValidation enter RUNNING
     }
@@ -82,6 +86,8 @@ state machine StateMachine {
     }
 
     state RUNNING {
+
+        entry do { sendNextStatement }
         on cycle do { stepStatement }
 
         on noMoreStatements enter AVAILABLE
