@@ -260,7 +260,7 @@ class TlmPacketParser(object):
             raise TlmPacketParseIOError("File %s does not exist!" % xml_filename)
 
         fd = open(xml_filename, "r")
-        xml_parser = etree.XMLParser(remove_comments=True)
+        xml_parser = etree.XMLParser(remove_comments=True, load_dtd=True, resolve_entities=True, no_network=True)
         element_tree = etree.parse(fd, parser=xml_parser)
         channel_size_dict = None
 
