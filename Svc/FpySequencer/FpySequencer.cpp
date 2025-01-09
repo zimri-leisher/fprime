@@ -73,7 +73,7 @@ void FpySequencer::OPEN_cmdHandler(
     U32 cmdSeq,                       //!< The command sequence number
     const Fw::CmdStringArg& fileName  //!< The name of the sequence file
 ) {
-  this->sequencer_sendSignal_cmd_LOAD(fileName);
+  // this->sequencer_sendSignal_cmd_LOAD(fileName);
   this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
 }
 
@@ -91,131 +91,115 @@ void LOG_STATUS_cmdHandler(FwOpcodeType opCode,  //!< The opcode
 //! Svc_FpySequencer_StateMachine
 //!
 //! sets the current sequence file path member
-void FpySequencer::Svc_FpySequencer_StateMachine_action_setSequenceFilePath(
-    SmId smId,                                     //!< The state machine id
-    Svc_FpySequencer_StateMachine::Signal signal,  //!< The signal
-    const Fw::StringBase& value                    //!< The value
-) {
-  this->m_sequenceFilePath = value;
-}
+// void FpySequencer::Svc_FpySequencer_StateMachine_action_setSequenceFilePath(
+//     SmId smId,                                     //!< The state machine id
+//     Svc_FpySequencer_StateMachine::Signal signal,  //!< The signal
+//     const Fw::StringBase& value                    //!< The value
+// ) {
+//   this->m_sequenceFilePath = value;
+// }
 
 //! Implementation for action resetSequenceFilePath of state machine
 //! Svc_FpySequencer_StateMachine
 //!
 //! resets the sequence file path member
-void FpySequencer::Svc_FpySequencer_StateMachine_action_resetSequenceFilePath(
-    SmId smId,                                    //!< The state machine id
-    Svc_FpySequencer_StateMachine::Signal signal  //!< The signal
-) {
-  this->m_sequenceFilePath = "";
-}
+// void FpySequencer::Svc_FpySequencer_StateMachine_action_resetSequenceFilePath(
+//     SmId smId,                                    //!< The state machine id
+//     Svc_FpySequencer_StateMachine::Signal signal  //!< The signal
+// ) {
+//   this->m_sequenceFilePath = "";
+// }
 
-//! Implementation for action openSequenceFile of state machine
-//! Svc_FpySequencer_StateMachine
-//!
-//! opens the file descriptor
-void FpySequencer::Svc_FpySequencer_StateMachine_action_openSequenceFile(
-    SmId smId,                                    //!< The state machine id
-    Svc_FpySequencer_StateMachine::Signal signal  //!< The signal
-) {
-  Os::File::Status status = this->m_sequenceFileObj.open(
-      this->m_sequenceFilePath.toChar(), Os::File::OPEN_READ);
+// //! Implementation for action openSequenceFile of state machine
+// //! Svc_FpySequencer_StateMachine
+// //!
+// //! opens the file descriptor
+// void FpySequencer::Svc_FpySequencer_StateMachine_action_openSequenceFile(
+//     SmId smId,                                    //!< The state machine id
+//     Svc_FpySequencer_StateMachine::Signal signal  //!< The signal
+// ) {
+//   Os::File::Status status = this->m_sequenceFileObj.open(
+//       this->m_sequenceFilePath.toChar(), Os::File::OPEN_READ);
 
-  if (status != Os::File::OP_OK) {
-    if (status == Os::File::DOESNT_EXIST) {
-      // this->m_events.fileNotFound();
-    } else {
-      // this->m_events.fileReadError();
-    }
-    this->m_sequenceFile.close();
-    stateTo_INVALID();
-  }
-}
+//   if (status != Os::File::OP_OK) {
+//     if (status == Os::File::DOESNT_EXIST) {
+//       // this->m_events.fileNotFound();
+//     } else {
+//       // this->m_events.fileReadError();
+//     }
+//     this->m_sequenceFileObj.close();
+//   }
+// }
+
+  // ----------------------------------------------------------------------
+  // Functions to implement for internal state machine actions
+  // ----------------------------------------------------------------------
+
+  // //! sets the current sequence file path member
+  // void FpySequencer::action_setSequenceFilePath(Signal signal,               //!< The signal
+  //                                 const Fw::StringBase& value  //!< The value
+  // );
+
+  // void FpySequencer::action_validateSequence(Signal signal  //!< The signal
+  // );
+
+  // void FpySequencer::action_reportValidationError(
+  //     Signal signal,                                  //!< The signal
+  //     const Svc::FpySequencer_ValidationError& value  //!< The value
+  // );
+
+  // void FpySequencer::action_stepStatement(Signal signal  //!< The signal
+  // );
+
+  //     // ----------------------------------------------------------------------
+  //     // Guards
+  //     // ----------------------------------------------------------------------
+
+  //     //! check whether the sequence file exists
+  //     bool
+  //     FpySequencer::guard_sequenceFileExists(Signal signal  //!< The signal
+  //     ) const;
+
+  // //! check whether the sequence file is open
+  // bool FpySequencer::guard_sequenceFileOpen(Signal signal  //!< The signal
+  // ) const;
+
+  // //! check whether the header is valid
+  // bool FpySequencer::guard_headerValid(Signal signal  //!< The signal
+  // ) const;
+
+  // bool FpySequencer::guard_bodyValid(Signal signal  //!< The signal
+  // ) const;
+
+  // bool FpySequencer::guard_footerValid(Signal signal  //!< The signal
+  // ) const;
 
 //! Implementation for action readHeader of state machine
 //! Svc_FpySequencer_StateMachine
-void FpySequencer::Svc_FpySequencer_StateMachine_action_readHeader(
-    SmId smId,                                    //!< The state machine id
-    Svc_FpySequencer_StateMachine::Signal signal  //!< The signal
-) {
-  U8* const buffAddr = this->m_sequenceBuffer.getBuffAddr();
-  this->initializeComputedCRC();
-  bool status = this->readHeader();
-  if (not status) {
-    stateTo_INVALID();
-    return;
-  }
-  if (status) {
-    this->updateComputedCRC(buffAddr, Svc::Fpy::Header::SERIALIZED_SIZE);
-    status = this->deserializeHeader() and this->readRecordsAndCRC() and
-             this->extractCRC();
-  }
-  if (status) {
-    const NATIVE_UINT_TYPE buffLen = this->m_buffer.getBuffLength();
-    this->m_crc.update(buffAddr, buffLen);
-    this->m_crc.finalize();
-  } else {
-  }
-}
+// void FpySequencer::Svc_FpySequencer_StateMachine_action_readHeader(
+//     SmId smId,                                    //!< The state machine id
+//     Svc_FpySequencer_StateMachine::Signal signal  //!< The signal
+// ) {
+//   U8* const buffAddr = this->m_sequenceBuffer.getBuffAddr();
+//   this->initializeComputedCRC();
+//   bool status = this->readHeader();
+//   if (not status) {
+//     stateTo_INVALID();
+//     return;
+//   }
+//   if (status) {
+//     this->updateComputedCRC(buffAddr, Svc::Fpy::Header::SERIALIZED_SIZE);
+//     status = this->deserializeHeader() and this->readRecordsAndCRC() and
+//              this->extractCRC();
+//   }
+//   if (status) {
+//     const NATIVE_UINT_TYPE buffLen = this->m_buffer.getBuffLength();
+//     this->m_crc.update(buffAddr, buffLen);
+//     this->m_crc.finalize();
+//   } else {
+//   }
+// }
 
-//! Implementation for action readBody of state machine
-//! Svc_FpySequencer_StateMachine
-void FpySequencer::Svc_FpySequencer_StateMachine_action_readBody(
-    SmId smId,                                    //!< The state machine id
-    Svc_FpySequencer_StateMachine::Signal signal  //!< The signal
-);
-
-//! Implementation for action readFooter of state machine
-//! Svc_FpySequencer_StateMachine
-void FpySequencer::Svc_FpySequencer_StateMachine_action_readFooter(
-    SmId smId,                                    //!< The state machine id
-    Svc_FpySequencer_StateMachine::Signal signal  //!< The signal
-);
-
-// ----------------------------------------------------------------------
-// Functions to implement for internal state machine guards
-// ----------------------------------------------------------------------
-
-//! Implementation for guard sequenceFileExists of state machine
-//! Svc_FpySequencer_StateMachine
-//!
-//! check whether the sequence file exists
-bool FpySequencer::Svc_FpySequencer_StateMachine_guard_sequenceFileExists(
-    SmId smId,                                    //!< The state machine id
-    Svc_FpySequencer_StateMachine::Signal signal  //!< The signal
-) const;
-
-//! Implementation for guard sequenceFileOpen of state machine
-//! Svc_FpySequencer_StateMachine
-//!
-//! check whether the sequence file is open
-bool FpySequencer::Svc_FpySequencer_StateMachine_guard_sequenceFileOpen(
-    SmId smId,                                    //!< The state machine id
-    Svc_FpySequencer_StateMachine::Signal signal  //!< The signal
-) const;
-
-//! Implementation for guard headerValid of state machine
-//! Svc_FpySequencer_StateMachine
-//!
-//! check whether the header is valid
-bool FpySequencer::Svc_FpySequencer_StateMachine_guard_headerValid(
-    SmId smId,                                    //!< The state machine id
-    Svc_FpySequencer_StateMachine::Signal signal  //!< The signal
-) const;
-
-//! Implementation for guard bodyValid of state machine
-//! Svc_FpySequencer_StateMachine
-bool FpySequencer::Svc_FpySequencer_StateMachine_guard_bodyValid(
-    SmId smId,                                    //!< The state machine id
-    Svc_FpySequencer_StateMachine::Signal signal  //!< The signal
-) const;
-
-//! Implementation for guard footerValid of state machine
-//! Svc_FpySequencer_StateMachine
-bool FpySequencer::Svc_FpySequencer_StateMachine_guard_footerValid(
-    SmId smId,                                    //!< The state machine id
-    Svc_FpySequencer_StateMachine::Signal signal  //!< The signal
-) const;
 
 //// called when transitioned to READING_HEADER
 // void FpySequencer::transtionCallback_READING_HEADER() {

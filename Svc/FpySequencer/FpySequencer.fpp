@@ -1,6 +1,28 @@
 module Svc {
     @ Dispatches command sequences to available command sequencers
     active component FpySequencer {
+
+        enum ValidationError {
+            UNKNOWN
+            UNABLE_TO_OPEN
+            CRC
+        }
+
+        enum StatementStepError {
+            UNKNOWN
+            INVALID_CMD
+        }
+
+        enum StatementType {
+            COMMAND
+            DIRECTIVE
+        }
+
+        struct StatementResponse {
+            $opcode: FwOpcodeType
+            $type: StatementType
+            response: Fw.CmdResponse
+        }
      
         include "FpySequencerCommands.fppi"
         include "FpySequencerTelemetry.fppi"
