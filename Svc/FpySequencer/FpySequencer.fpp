@@ -2,13 +2,28 @@ module Svc {
     @ Dispatches command sequences to available command sequencers
     active component FpySequencer {
 
-        enum ValidationError {
+        enum StatementFinishedFailure {
             UNKNOWN
-            UNABLE_TO_OPEN
+        }
+
+        enum OpenSequenceFileFailure {
+            UNKNOWN
+        }
+
+        enum ReadHeaderFailure {
+            UNKNOWN
+        }
+
+        enum ReadBodyFailure {
+            UNKNOWN
+        }
+
+        enum ReadFooterFailure {
+            UNKNOWN
             CRC
         }
 
-        enum StatementStepError {
+        enum StepStatementFailure {
             UNKNOWN
             INVALID_CMD
         }
@@ -29,7 +44,7 @@ module Svc {
         include "FpySequencerEvents.fppi"
         include "FpySequencerStateMachine.fppi"
 
-        state machine instance sequencer: StateMachine
+        state machine instance sequencer: SequencerStateMachine
 
         ###############################################################################
         # Standard AC Ports: Required for Channels, Events, Commands, and Parameters  #

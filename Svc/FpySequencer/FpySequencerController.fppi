@@ -1,13 +1,10 @@
 state machine Controller {
 
+    # this state machine controls the "goal state" of the actual
+    # state machine. 
     signal cmd_VALIDATE
     signal cmd_RUN
     signal cmd_CANCEL
-
-    signal finish_VALIDATION
-
-    action goToValidation
-
 
     initial enter IDLE
     

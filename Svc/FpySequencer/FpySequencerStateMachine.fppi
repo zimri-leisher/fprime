@@ -1,26 +1,37 @@
-state machine StateMachine {
+state machine SequencerStateMachine {
     ####################
     # guards           #
     ####################
-    guard goalStateIs_RUN
+    guard goalStateIs_RUNNING
     guard statementWasDirective: StatementType
-    guard successfulResponse: StatementResponse
+    guard shouldCancel
 
     ####################
     # signals          #
     ####################
     signal cmd_VALIDATE: string
-    signal cmd_RUN
+    signal cmd_RUN: string
+    signal cmd_RUN_VALIDATED
     signal cmd_CANCEL
 
+    signal stepStatement_successCmd
+    signal stepStatement_successDirective
+    signal stepStatement_failure: StepStatementFailure
+    signal stepStatement_noMoreStatements
+    signal stepStatement_cancelled
+
     signal sequenceValid
-    signal sequenceInvalid: ValidationError
-
-    signal step_failure: StatementStepError
-    signal step_success: StatementType
-    signal step_noMoreStatements
-
-    signal statementFinished: StatementResponse
+    signal sequenceInvalid
+    signal statementFinished_success
+    signal statementFinished_failure: StatementFinishedFailure
+    signal openSequenceFile_success
+    signal openSequenceFile_failure: OpenSequenceFileFailure
+    signal readHeader_success
+    signal readHeader_failure: ReadHeaderFailure
+    signal readBody_success
+    signal readBody_failure: ReadBodyFailure
+    signal readFooter_success
+    signal readFooter_failure: ReadFooterFailure
 
     ####################
     # actions          #
@@ -30,41 +41,86 @@ state machine StateMachine {
     @ resets the sequence file path member
     action resetSequenceFile
     action validateSequence
+    action openSequenceFile
+    action readHeader
+    action readBody
+    action readFooter
 
-    action reportError_validation: ValidationError
-    action reportError_statementStep: StatementStepError
+    action reportError_stepStatement: StepStatementFailure
     action reportError_statementResponse: StatementResponse
+    action reportError_openSequenceFile: OpenSequenceFileFailure
+    action reportError_readHeader: ReadHeaderFailure
+    action reportError_readBody: ReadBodyFailure
+    action reportError_readFooter: ReadFooterFailure
+    action reportError_statementFinished: StatementFinishedFailure
+
+    action report_seqDone
 
     action stepStatement
+    
+    action cancelNextStepStatement
+
+    action setGoalState_RUNNING
+    action setGoalState_VALID
 
     ####################
     # topology         #
     ####################
-    initial enter AVAILABLE
+    initial enter IDLE
 
     @ sequencer is ready to load and run a sequence
-    state AVAILABLE {
+    state IDLE {
         @ start with an unset sequence file
         entry do { resetSequenceFile }
+        # -->
+        # WAIT
 
-        on cmd_VALIDATE do { setSequenceFilePath } enter VALIDATION
+        on cmd_VALIDATE do { setGoalState_VALID, setSequenceFilePath } enter VALIDATION
+        on cmd_RUN do { setGoalState_RUNNING, setSequenceFilePath } enter VALIDATION
     }
 
     state VALIDATION {
-        entry do { validateSequence }
-        # -->
-        on sequenceValid enter VALID
-        on sequenceInvalid do { reportError_validation } enter AVAILABLE
+
+        initial enter OPEN_SEQUENCE_FILE
+
+        state OPEN_SEQUENCE_FILE {
+            entry do { openSequenceFile }
+            # -->
+            on openSequenceFile_success enter READ_HEADER
+            on openSequenceFile_failure do { reportError_openSequenceFile } enter IDLE
+        }
+
+        state READ_HEADER {
+            entry do { readHeader }
+            # -->
+            on readHeader_success enter READ_BODY
+            on readHeader_failure do { reportError_readHeader } enter IDLE
+        }
+
+        state READ_BODY {
+            entry do { readBody }
+            # -->
+            on readBody_success enter READ_FOOTER
+            on readBody_failure do { reportError_readBody } enter IDLE
+        }
+
+        state READ_FOOTER {
+            entry do { readFooter }
+            # -->
+            on readFooter_success enter WAIT_FOR_CMD_OR_RUN
+            on readFooter_failure do { reportError_readFooter } enter IDLE
+        }
     }
 
     choice WAIT_FOR_CMD_OR_RUN {
-        # if we already received the RUN cmd, move on to RUN. otherwise wait
-        if goalStateIs_RUNNING enter RUNNING else enter VALID
+        # if we already received the RUN cmd, move on to RUNNING. otherwise wait
+        if goalStateIs_RUNNING enter RUNNING else enter AWAITING_CONTINUE_CMD
     }
 
-    state VALID {
-        # wait here until we get the RUN cmd
-        on cmd_RUN enter RUNNING
+    state AWAITING_CONTINUE_CMD {
+        # wait here until we get the RUN_VALIDATED cmd
+        on cmd_RUN_VALIDATED enter RUNNING
+        on cmd_CANCEL enter IDLE
     }
 
     state RUNNING {
@@ -73,28 +129,23 @@ state machine StateMachine {
         state STEP_STATEMENT {
             entry do { stepStatement }
             # -->
-            on step_noMoreStatements enter AVAILABLE
-            on step_failure do { reportError_statementStep } enter AVAILABLE
-            on step_success enter DIRECTIVE_OR_CMD
+            on stepStatement_cancelled enter IDLE
+            on stepStatement_noMoreStatements do { report_seqDone } enter IDLE
+            on stepStatement_failure do { reportError_stepStatement } enter IDLE
+            on stepStatement_successCmd enter AWAIT_CMD
+            on stepStatement_successDirective enter AWAIT_DIRECTIVE
         }
-
-        choice DIRECTIVE_OR_CMD {
-            if statementWasDirective enter AWAIT_DIRECTIVE else enter AWAIT_CMD
-        }
-
-        # i have these separated at the request of Canham
+        
         state AWAIT_DIRECTIVE {
-            on statementFinished enter STATEMENT_FINISHED
+            on statementFinished_success enter STEP_STATEMENT
+            on statementFinished_failure do { reportError_statementFinished } enter IDLE
         }
 
         state AWAIT_CMD {
-            on statementFinished enter STATEMENT_FINISHED
+            on statementFinished_success enter STEP_STATEMENT
+            on statementFinished_failure do { reportError_statementFinished } enter IDLE
         }
 
-        choice STATEMENT_FINISHED {
-            if successfulResponse enter STEP_STATEMENT else do { reportError_statementResponse } enter AVAILABLE
-        }
-
-        on cmd_CANCEL enter AVAILABLE
+        on cmd_CANCEL do { cancelNextStepStatement }
     }
 }
