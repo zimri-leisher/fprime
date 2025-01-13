@@ -3,8 +3,6 @@ state machine SequencerStateMachine {
     # guards           #
     ####################
     guard goalStateIs_RUNNING
-    guard statementWasDirective: StatementType
-    guard shouldCancel
 
     ####################
     # signals          #
@@ -20,8 +18,6 @@ state machine SequencerStateMachine {
     signal stepStatement_noMoreStatements
     signal stepStatement_cancelled
 
-    signal sequenceValid
-    signal sequenceInvalid
     signal statementFinished_success
     signal statementFinished_failure: StatementFinishedFailure
     signal openSequenceFile_success
@@ -40,14 +36,12 @@ state machine SequencerStateMachine {
     action setSequenceFilePath: string
     @ resets the sequence file path member
     action resetSequenceFile
-    action validateSequence
     action openSequenceFile
     action readHeader
     action readBody
     action readFooter
 
     action reportError_stepStatement: StepStatementFailure
-    action reportError_statementResponse: StatementResponse
     action reportError_openSequenceFile: OpenSequenceFileFailure
     action reportError_readHeader: ReadHeaderFailure
     action reportError_readBody: ReadBodyFailure
