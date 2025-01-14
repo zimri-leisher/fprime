@@ -9,9 +9,9 @@ state machine SequencerStateMachine {
     # signals          #
     ####################
     @ called on VALIDATE cmd with the path of the sequence file to validate
-    signal cmd_VALIDATE: string
+    signal cmd_VALIDATE: SequenceExecutionArgs
     @ called on RUN cmd with the path of the sequence file to run
-    signal cmd_RUN: string
+    signal cmd_RUN: SequenceExecutionArgs
     @ called on RUN_VALIDATED cmd
     signal cmd_RUN_VALIDATED
     @ called on CANCEL cmd
@@ -53,7 +53,9 @@ state machine SequencerStateMachine {
     # actions          #
     ####################
     @ sets the current sequence file path member var
-    action setSequenceFilePath: string
+    action setSequenceFilePath: SequenceExecutionArgs
+    @ sets the block state of the sequence to be run
+    action setSequenceShouldBlock: SequenceExecutionArgs
     @ resets the sequence file member var
     action resetSequenceFile
     @ opens the sequence file based on the sequence file path member var
@@ -64,6 +66,8 @@ state machine SequencerStateMachine {
     action readBody
     @ loads from disk and formats the footer into memory representation
     action readFooter
+    @ closes the open sequence file
+    action closeSequenceFile
 
     @ reports an error that occurred in the stepStatement method
     action reportError_stepStatement: StepStatementFailure
@@ -82,6 +86,9 @@ state machine SequencerStateMachine {
     action report_seqDone
     @ reports that a sequence was cancelled
     action report_seqCancelled
+
+    @ warns that the user said to cancel a sequence but there is no sequence to cancel
+    action warn_noSequenceToCancel
 
     @ iterates to the next statement and dispatches it
     action stepStatement
@@ -104,12 +111,13 @@ state machine SequencerStateMachine {
     @ sequencer is ready to load, validate and run a sequence
     state IDLE {
         # start with an unset sequence file
-        entry do { resetSequenceFile }
+        entry do { closeSequenceFile, resetSequenceFile }
         # -->
         # WAIT
 
-        on cmd_VALIDATE do { setGoalState_VALID, setSequenceFilePath } enter VALIDATION
-        on cmd_RUN do { setGoalState_RUNNING, setSequenceFilePath } enter VALIDATION
+        on cmd_VALIDATE do { setGoalState_VALID, setSequenceFilePath, setSequenceShouldBlock } enter VALIDATION
+        on cmd_RUN do { setGoalState_RUNNING, setSequenceFilePath, setSequenceShouldBlock } enter VALIDATION
+        on cmd_CANCEL do { warn_noSequenceToCancel }
     }
 
     @ sequencer is loading and validating the sequence
@@ -145,9 +153,12 @@ state machine SequencerStateMachine {
         state READ_FOOTER {
             entry do { readFooter }
             # -->
-            on readFooter_success enter WAIT_FOR_CMD_OR_RUN
+            # close the sequence file now that it's in memory
+            on readFooter_success do { closeSequenceFile } enter WAIT_FOR_CMD_OR_RUN
             on readFooter_failure do { reportError_readFooter } enter IDLE
         }
+
+        on cmd_CANCEL do { report_seqCancelled } enter IDLE
     }
 
     @ decide whether we should stop after validating, or proceed to running
@@ -160,7 +171,7 @@ state machine SequencerStateMachine {
     state AWAITING_RUN_VALIDATED_CMD {
         # wait here until we get the RUN_VALIDATED cmd
         on cmd_RUN_VALIDATED enter RUNNING
-        on cmd_CANCEL enter IDLE
+        on cmd_CANCEL do { report_seqCancelled } enter IDLE
     }
 
     @ sequencer is executing all statements in the sequence

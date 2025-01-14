@@ -1,14 +1,20 @@
-@ Dispatches a sequence to the first available sequencer
+@ Loads, validates and runs a sequence
 async command RUN(
                       fileName: string size 240 @< The name of the sequence file
                       $block: Fw.Wait @< Return command status when complete or not
                     ) \
     opcode 0
 
-async command OPEN(
+@ Loads and validates a sequence
+async command VALIDATE(
                       fileName: string size 240 @< The name of the sequence file
                   ) \
     opcode 1
 
-@ Logs via Events the state of each connected command sequencer
-async command LOG_STATUS() opcode 2
+@ Runs a previously validated sequence
+async command RUN_VALIDATED() \
+    opcode 2
+
+@ Cancels a running or validated sequence
+async command CANCEL() \
+    opcode 3
