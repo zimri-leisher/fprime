@@ -2,7 +2,7 @@
 name: ROSES Pattern
 about: A standard pattern funded for documentation via ROSES.
 title: ROSES - [Pattern]
-labels: ROSES Candidate
+labels: ROSES
 assignees: ''
 
 ---
@@ -12,7 +12,8 @@ assignees: ''
 
 ### Deliverables (completed before closing issue):
 - [ ] Select deliverable type
-  - [ ] Reference guide
+  - [ ] Reference
+  - [ ] User Guide
   - [ ] How-To
   - [ ] Tutorial
   - [ ] Other (tool, fill-in, etc)
