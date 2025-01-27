@@ -13,6 +13,7 @@
 #include "Fw/Types/WaitEnumAc.hpp"
 #include "Os/File.hpp"
 #include "Svc/FpySequencer/FpySequencerComponentAc.hpp"
+#include "FpySequencerTypes.hpp"
 
 namespace Svc {
 
@@ -296,6 +297,9 @@ class FpySequencer : public FpySequencerComponentBase {
   // whether or not the sequence we're about to run should return immediately or
   // block on completion
   Fw::Wait m_sequenceShouldBlock;
+
+  Fpy::Sequence m_sequenceObj;
+
   // live running computation of CRC (updated as we read)
   U32 m_computedCRC;
 

@@ -62,52 +62,7 @@ void FpySequencer::
   }
 
   FpySequencer_OpenSequenceFileFailure failure;
-  switch (openStatus) {
-    case Os::File::DOESNT_EXIST: {
-      failure = FpySequencer_OpenSequenceFileFailure::DOESNT_EXIST;
-      break;
-    }
-    case Os::File::NO_SPACE: {
-      failure = FpySequencer_OpenSequenceFileFailure::NO_SPACE;
-      break;
-    }
-    case Os::File::NO_PERMISSION: {
-      failure = FpySequencer_OpenSequenceFileFailure::NO_PERMISSION;
-      break;
-    }
-    case Os::File::BAD_SIZE: {
-      failure = FpySequencer_OpenSequenceFileFailure::BAD_SIZE;
-      break;
-    }
-    case Os::File::NOT_OPENED: {
-      failure = FpySequencer_OpenSequenceFileFailure::NOT_OPENED;
-      break;
-    }
-    case Os::File::FILE_EXISTS: {
-      failure = FpySequencer_OpenSequenceFileFailure::FILE_EXISTS;
-      break;
-    }
-    case Os::File::NOT_SUPPORTED: {
-      failure = FpySequencer_OpenSequenceFileFailure::NOT_SUPPORTED;
-      break;
-    }
-    case Os::File::INVALID_MODE: {
-      failure = FpySequencer_OpenSequenceFileFailure::INVALID_MODE;
-      break;
-    }
-    case Os::File::INVALID_ARGUMENT: {
-      failure = FpySequencer_OpenSequenceFileFailure::INVALID_ARGUMENT;
-      break;
-    }
-    case Os::File::OTHER_ERROR: {
-      failure = FpySequencer_OpenSequenceFileFailure::OTHER_ERROR;
-      break;
-    }
-    default: {
-      failure = FpySequencer_OpenSequenceFileFailure::UNKNOWN;
-      break;
-    }
-  }
+  failure.setfileOpenErrorCode(openStatus);
 
   this->sequencer_sendSignal_openSequenceFile_failure(failure);
 }
@@ -131,7 +86,37 @@ void FpySequencer::
 void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_readHeader(
     SmId smId,  //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
-) {}
+) {
+  FwSignedSizeType readLen = Fpy::Header::SERIALIZED_SIZE;
+  FW_ASSERT(readLen >= 0, static_cast<FwAssertArgType>(readLen));
+
+  const NATIVE_UINT_TYPE capacity = m_sequenceBuffer.getBuffCapacity();
+  FW_ASSERT(capacity >= static_cast<NATIVE_UINT_TYPE>(readLen),
+            static_cast<FwAssertArgType>(capacity),
+            static_cast<FwAssertArgType>(readLen));
+  Os::File::Status fileStatus = m_sequenceFileObj.read(m_sequenceBuffer.getBuffAddr(), readLen);
+
+  if (fileStatus != Os::File::OP_OK) {
+    this->sequencer_sendSignal_readHeader_failure(FpySequencer_ReadHeaderFailure::)
+    this->m_events.fileInvalid(CmdSequencer_FileReadStage::READ_HEADER,
+                               fileStatus);
+    status = false;
+  }
+
+  if (status and readLen != Sequence::Header::SERIALIZED_SIZE) {
+    this->m_events.fileInvalid(CmdSequencer_FileReadStage::READ_HEADER_SIZE,
+                               static_cast<I32>(readLen));
+    status = false;
+  }
+
+  if (status) {
+    const Fw::SerializeStatus serializeStatus =
+        buffer.setBuffLen(static_cast<Fw::Serializable::SizeType>(readLen));
+    FW_ASSERT(serializeStatus == Fw::FW_SERIALIZE_OK, serializeStatus);
+  }
+
+  return status;
+}
 
 //! Implementation for action readBody of state machine
 //! Svc_FpySequencer_SequencerStateMachine
