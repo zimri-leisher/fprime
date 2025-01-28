@@ -13,7 +13,7 @@ state machine SequencerStateMachine {
     @ called on RUN cmd with the path of the sequence file to run
     signal cmd_RUN: SequenceExecutionArgs
     @ called on RUN_VALIDATED cmd
-    signal cmd_RUN_VALIDATED
+    signal cmd_RUN_VALIDATED: SequenceExecutionArgs
     @ called on CANCEL cmd
     signal cmd_CANCEL
 
@@ -22,7 +22,7 @@ state machine SequencerStateMachine {
     @ called in stepStatement method when a directive was sent to this sequencer
     signal stepStatement_successDirective
     @ called in stepStatement method when a statement was unable to be sent out
-    signal stepStatement_failure: StepStatementFailure
+    signal stepStatement_failure
     @ called in stepStatement method when there were no more statements in the sequence
     signal stepStatement_noMoreStatements
     @ called in stepStatement method when the sequence execution was cancelled
@@ -31,23 +31,23 @@ state machine SequencerStateMachine {
     @ called in statementFinished method when a statement was successfully executed
     signal statementFinished_success
     @ called in statementFinished method when a statement was unsuccessfully executed
-    signal statementFinished_failure: StatementFinishedFailure
+    signal statementFinished_failure
     @ called in openSequenceFile method when the sequence file was successfully opened
     signal openSequenceFile_success
     @ called in openSequenceFile method when the sequence file was unsuccessfully opened
-    signal openSequenceFile_failure: OpenSequenceFileFailure
+    signal openSequenceFile_failure
     @ called in readHeader method when the header was successfully read
     signal readHeader_success
     @ called in readHeader method when the header was unsuccessfully read
-    signal readHeader_failure: ReadHeaderFailure
+    signal readHeader_failure
     @ called in readBody method when the body was successfully read
     signal readBody_success
     @ called in readBody method when the body was unsuccessfully read
-    signal readBody_failure: ReadBodyFailure
+    signal readBody_failure
     @ called in readFooter method when the footer was successfully read
     signal readFooter_success
     @ called in readFooter method when the footer was unsuccessfully read
-    signal readFooter_failure: ReadFooterFailure
+    signal readFooter_failure
 
     ####################
     # actions          #
@@ -68,19 +68,6 @@ state machine SequencerStateMachine {
     action readFooter
     @ closes the open sequence file
     action closeSequenceFile
-
-    @ reports an error that occurred in the stepStatement method
-    action reportError_stepStatement: StepStatementFailure
-    @ reports an error that occurred in the openSequenceFile method
-    action reportError_openSequenceFile: OpenSequenceFileFailure
-    @ reports an error that occurred in the readHeader method
-    action reportError_readHeader: ReadHeaderFailure
-    @ reports an error that occurred in the readBody method
-    action reportError_readBody: ReadBodyFailure
-    @ reports an error that occurred in the readFooter method
-    action reportError_readFooter: ReadFooterFailure
-    @ reports an error that occurred in the statementFinished method
-    action reportError_statementFinished: StatementFinishedFailure
 
     @ reports that a sequence was completed
     action report_seqDone
@@ -130,7 +117,7 @@ state machine SequencerStateMachine {
             entry do { openSequenceFile }
             # -->
             on openSequenceFile_success enter READ_HEADER
-            on openSequenceFile_failure do { reportError_openSequenceFile } enter IDLE
+            on openSequenceFile_failure enter IDLE
         }
 
         @ sequencer is reading the header
@@ -138,7 +125,7 @@ state machine SequencerStateMachine {
             entry do { readHeader }
             # -->
             on readHeader_success enter READ_BODY
-            on readHeader_failure do { reportError_readHeader } enter IDLE
+            on readHeader_failure enter IDLE
         }
 
         @ sequencer is reading the body
@@ -146,7 +133,7 @@ state machine SequencerStateMachine {
             entry do { readBody }
             # -->
             on readBody_success enter READ_FOOTER
-            on readBody_failure do { reportError_readBody } enter IDLE
+            on readBody_failure enter IDLE
         }
 
         @ sequencer is reading the footer
@@ -155,7 +142,7 @@ state machine SequencerStateMachine {
             # -->
             # close the sequence file now that it's in memory
             on readFooter_success do { closeSequenceFile } enter WAIT_FOR_CMD_OR_RUN
-            on readFooter_failure do { reportError_readFooter } enter IDLE
+            on readFooter_failure enter IDLE
         }
 
         on cmd_CANCEL do { report_seqCancelled } enter IDLE
@@ -184,7 +171,7 @@ state machine SequencerStateMachine {
             # -->
             on stepStatement_cancelled do { report_seqCancelled } enter IDLE
             on stepStatement_noMoreStatements do { report_seqDone } enter IDLE
-            on stepStatement_failure do { reportError_stepStatement } enter IDLE
+            on stepStatement_failure enter IDLE
             on stepStatement_successCmd enter AWAIT_CMD
             on stepStatement_successDirective enter AWAIT_DIRECTIVE
         }
@@ -192,13 +179,13 @@ state machine SequencerStateMachine {
         @ sequencer is awaiting the execution result of a directive
         state AWAIT_DIRECTIVE {
             on statementFinished_success enter STEP_STATEMENT
-            on statementFinished_failure do { reportError_statementFinished } enter IDLE
+            on statementFinished_failure enter IDLE
         }
 
         @ sequencer is awaiting the execution result of a cmd
         state AWAIT_CMD {
             on statementFinished_success enter STEP_STATEMENT
-            on statementFinished_failure do { reportError_statementFinished } enter IDLE
+            on statementFinished_failure enter IDLE
         }
 
         on cmd_CANCEL do { cancelNextStepStatement }

@@ -1,35 +1,16 @@
 module Svc {
     @ Dispatches command sequences to available command sequencers
     active component FpySequencer {
-
-        enum StatementFinishedFailure {
-            UNKNOWN
-        }
-
-        struct OpenSequenceFileFailure {
-            fileOpenErrorCode: U16
-        }
-
-        struct ReadHeaderFailure {
-            fileReadErrorCode: U16
-        }
-
-        struct ReadBodyFailure {
-            fileReadErrorCode: U16
-        }
-
-        struct ReadFooterFailure {
-            fileReadErrorCode: U16
-        }
-
-        enum StepStatementFailure {
-            UNKNOWN
-            INVALID_CMD
-        }
-
+        
         enum StatementType {
             COMMAND
             DIRECTIVE
+        }
+
+        enum BlockState {
+            BLOCK
+            NO_BLOCK
+            UNSPECIFIED
         }
 
         struct StatementResponse {
@@ -40,7 +21,7 @@ module Svc {
 
         struct SequenceExecutionArgs {
             filePath: string
-            $block: Fw.Wait
+            $block: BlockState
         }
      
         include "FpySequencerCommands.fppi"

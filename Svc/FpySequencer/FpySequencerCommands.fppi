@@ -1,7 +1,7 @@
 @ Loads, validates and runs a sequence
 async command RUN(
                       fileName: string size 240 @< The name of the sequence file
-                      $block: Fw.Wait @< Return command status when complete or not
+                      $block: BlockState @< Return command status when complete or not
                     ) \
     opcode 0
 
@@ -12,7 +12,9 @@ async command VALIDATE(
     opcode 1
 
 @ Runs a previously validated sequence
-async command RUN_VALIDATED() \
+async command RUN_VALIDATED(
+                            $block: BlockState @< Return command status when complete or not
+                           ) \
     opcode 2
 
 @ Cancels a running or validated sequence
