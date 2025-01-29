@@ -26,19 +26,19 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_setSequenceShou
     Svc_FpySequencer_SequencerStateMachine::Signal signal,  //!< The signal
     const Svc::FpySequencer_SequenceExecutionArgs& value    //!< The value
 ) {
-    m_sequenceShouldBlock = value.getblock();
+    m_blockState = value.getblock();
 }
 
-//! Implementation for action resetSequenceFile of state machine
+//! Implementation for action resetSequenceExecutionArgs of state machine
 //! Svc_FpySequencer_SequencerStateMachine
 //!
 //! resets the sequence file member var
-void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_resetSequenceFile(
+void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_resetSequenceExecutionArgs(
     SmId smId,                                             //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
 ) {
     m_sequenceFilePath = "";
-    m_sequenceShouldBlock = FpySequencer_BlockState::UNSPECIFIED;
+    m_blockState = FpySequencer_BlockState::UNSPECIFIED;
 }
 
 //! Implementation for action openSequenceFile of state machine
@@ -49,6 +49,8 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_openSequenceFil
     SmId smId,                                             //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
 ) {
+    FW_ASSERT(m_sequenceFilePath.length() > 0);
+    // @FPRIME guys -- how do I check that the file is not open already?
     Os::File::Status openStatus = m_sequenceFileObj.open(m_sequenceFilePath.toChar(), Os::File::OPEN_READ);
 
     if (openStatus == Os::File::Status::OP_OK) {
@@ -56,6 +58,7 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_openSequenceFil
         return;
     }
 
+    this->log_WARNING_HI_FileOpenError(m_sequenceFilePath, static_cast<I32>(openStatus));
     this->sequencer_sendSignal_openSequenceFile_failure();
 }
 
@@ -78,8 +81,8 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_readHeader(
     SmId smId,                                             //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
 ) {
+    // @FPRIME guys-- again, want to check that file is open
     FwSignedSizeType readLen = Fpy::Header::SERIALIZED_SIZE;
-    FW_ASSERT(readLen >= 0, static_cast<FwAssertArgType>(readLen));
 
     const NATIVE_UINT_TYPE capacity = m_sequenceBuffer.getBuffCapacity();
     FW_ASSERT(capacity >= static_cast<NATIVE_UINT_TYPE>(readLen), static_cast<FwAssertArgType>(capacity),
@@ -155,6 +158,15 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_readHeader(
         return;
     }
 
+    // File size
+    serializeStatus = m_sequenceBuffer.deserialize(m_sequenceObj.m_header.m_bodySize);
+    if (serializeStatus != Fw::FW_SERIALIZE_OK) {
+        this->log_WARNING_HI_DeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
+                                              m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
+        this->sequencer_sendSignal_readHeader_failure();
+        return;
+    }
+
     this->log_DIAGNOSTIC_ReadHeaderSuccess(m_sequenceFilePath);
     this->sequencer_sendSignal_readHeader_success();
 }
@@ -167,7 +179,53 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_readBody(
     SmId smId,                                             //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
 ) {
+    FwSignedSizeType readLen = m_sequenceObj.m_header.m_bodySize;
 
+    const NATIVE_UINT_TYPE capacity = m_sequenceBuffer.getBuffCapacity();
+    FW_ASSERT(capacity >= static_cast<NATIVE_UINT_TYPE>(readLen), static_cast<FwAssertArgType>(capacity),
+              static_cast<FwAssertArgType>(readLen));
+    Os::File::Status fileStatus = m_sequenceFileObj.read(m_sequenceBuffer.getBuffAddr(), readLen);
+
+    Fw::SerializeStatus serializeStatus;
+
+    U8 remainingArgMappings = m_sequenceObj.m_header.m_argumentCount;
+    while (remainingArgMappings > 0) {
+        // local variable index of arg $remainingArgMappings - 1
+        serializeStatus = m_sequenceBuffer.deserialize(m_sequenceObj.m_argArray[remainingArgMappings - 1]);
+        if (serializeStatus != Fw::FW_SERIALIZE_OK) {
+            this->log_WARNING_HI_DeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
+                                                  m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
+            this->sequencer_sendSignal_readBody_failure();
+            return;
+        }
+        remainingArgMappings--;
+    }
+    U16 remainingStatements = m_sequenceObj.m_header.m_statementCount;
+    while (remainingStatements > 0) {
+        // statement at index $remainingStatements - 1
+        Fpy::Statement& statement = m_sequenceObj.m_statementArray[remainingStatements - 1];
+        // opcode
+        serializeStatus = m_sequenceBuffer.deserialize(statement.m_opcode);
+        if (serializeStatus != Fw::FW_SERIALIZE_OK) {
+            this->log_WARNING_HI_DeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
+                                                  m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
+            this->sequencer_sendSignal_readBody_failure();
+            return;
+        }
+
+        // arg buf
+        serializeStatus = m_sequenceBuffer.deserialize(statement.m_args);
+        if (serializeStatus != Fw::FW_SERIALIZE_OK) {
+            this->log_WARNING_HI_DeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
+                                                  m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
+            this->sequencer_sendSignal_readBody_failure();
+            return;
+        }
+        remainingStatements--;
+    }
+
+    this->log_DIAGNOSTIC_ReadBodySuccess(m_sequenceFilePath);
+    this->sequencer_sendSignal_readBody_success();
 }
 
 //! Implementation for action readFooter of state machine
@@ -177,22 +235,44 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_readBody(
 void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_readFooter(
     SmId smId,                                             //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
-) {}
+) {
+    Fw::SerializeStatus serializeStatus = m_sequenceBuffer.deserialize(m_sequenceObj.m_footer.m_crc);
+    if (serializeStatus != Fw::FW_SERIALIZE_OK) {
+        this->log_WARNING_HI_DeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
+                                              m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
+        this->sequencer_sendSignal_readFooter_failure();
+        return;
+    }
+    this->log_DIAGNOSTIC_ReadFooterSuccess(m_sequenceFilePath);
+    this->sequencer_sendSignal_readFooter_success();
+}
 
-//! Implementation for action report_seqDone of state machine
+//! Implementation for action report_seqSucceeded of state machine
 //! Svc_FpySequencer_SequencerStateMachine
 //!
 //! reports that a sequence was completed
-void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_report_seqDone(
+void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_report_seqSucceeded(
     SmId smId,                                             //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
-) {}
+) {
+    this->log_ACTIVITY_HI_SequenceDone(m_sequenceFilePath);
+}
 
 //! Implementation for action report_seqCancelled of state machine
 //! Svc_FpySequencer_SequencerStateMachine
 //!
 //! reports that a sequence was cancelled
 void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_report_seqCancelled(
+    SmId smId,                                             //!< The state machine id
+    Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
+) {
+    this->log_ACTIVITY_HI_SequenceCancelled(m_sequenceFilePath);
+}
+
+//! Implementation for action warn_invalidCmd of state machine Svc_FpySequencer_SequencerStateMachine
+//!
+//! warns that the user cmd was invalid
+void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_warn_invalidCmd(
     SmId smId,                                             //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
 ) {}
@@ -214,7 +294,9 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_stepStatement(
 void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_cancelNextStepStatement(
     SmId smId,                                             //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
-) {}
+) {
+    m_cancelAfterNextStep = true;
+}
 
 //! Implementation for action setGoalState_RUNNING of state machine
 //! Svc_FpySequencer_SequencerStateMachine
@@ -223,7 +305,9 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_cancelNextStepS
 void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_setGoalState_RUNNING(
     SmId smId,                                             //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
-) {}
+) {
+    m_goalState = FpySequencer_GoalState::RUNNING;
+}
 
 //! Implementation for action setGoalState_VALID of state machine
 //! Svc_FpySequencer_SequencerStateMachine
@@ -232,18 +316,45 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_setGoalState_RU
 void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_setGoalState_VALID(
     SmId smId,                                             //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
-) {}
+) {
+    m_goalState = FpySequencer_GoalState::VALID;
+}
 
-//! Implementation for action warn_noSequenceToCancel of state machine
-//! Svc_FpySequencer_SequencerStateMachine
+//! Implementation for action setGoalState_IDLE of state machine Svc_FpySequencer_SequencerStateMachine
 //!
-//! warns that the user said to cancel a sequence but there is no sequence to
-//! cancel
-void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_warn_noSequenceToCancel(
+//! sets the goal state to IDLE
+void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_setGoalState_IDLE(
     SmId smId,                                             //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
-) {}
+) {
+    m_goalState = FpySequencer_GoalState::IDLE;
+}
 
+//! Implementation for action cmdResponse_OK of state machine Svc_FpySequencer_SequencerStateMachine
+//!
+//! responds to the calling command with OK
+void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_cmdResponse_OK(
+    SmId smId,                                             //!< The state machine id
+    Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
+) {
+    if (this->m_blockState == FpySequencer_BlockState::BLOCK) {
+        // respond if necessary
+        this->cmdResponse_out(m_savedOpCode, m_savedCmdSeq, Fw::CmdResponse::OK);
+    }
+}
+
+//! Implementation for action cmdResponse_EXECUTION_ERROR of state machine Svc_FpySequencer_SequencerStateMachine
+//!
+//! responds to the calling command with EXECUTION_ERROR
+void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_cmdResponse_EXECUTION_ERROR(
+    SmId smId,                                             //!< The state machine id
+    Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
+) {
+    if (this->m_blockState == FpySequencer_BlockState::BLOCK) {
+        // respond if necessary
+        this->cmdResponse_out(m_savedOpCode, m_savedCmdSeq, Fw::CmdResponse::EXECUTION_ERROR);
+    }
+}
 // ----------------------------------------------------------------------
 // Functions to implement for internal state machine guards
 // ----------------------------------------------------------------------

@@ -13,6 +13,12 @@ module Svc {
             UNSPECIFIED
         }
 
+        enum GoalState {
+            RUNNING
+            VALID
+            IDLE
+        }
+
         struct StatementResponse {
             $opcode: FwOpcodeType
             $type: StatementType
@@ -23,7 +29,7 @@ module Svc {
             filePath: string
             $block: BlockState
         }
-     
+
         include "FpySequencerCommands.fppi"
         include "FpySequencerTelemetry.fppi"
         include "FpySequencerEvents.fppi"

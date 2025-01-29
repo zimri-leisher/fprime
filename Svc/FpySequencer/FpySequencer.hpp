@@ -91,11 +91,11 @@ class FpySequencer : public FpySequencerComponentBase {
         const Svc::FpySequencer_SequenceExecutionArgs& value    //!< The value
         ) override;
 
-    //! Implementation for action resetSequenceFile of state machine
+    //! Implementation for action resetSequenceExecutionArgs of state machine
     //! Svc_FpySequencer_SequencerStateMachine
     //!
     //! resets the sequence file member var
-    void Svc_FpySequencer_SequencerStateMachine_action_resetSequenceFile(
+    void Svc_FpySequencer_SequencerStateMachine_action_resetSequenceExecutionArgs(
         SmId smId,                                             //!< The state machine id
         Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
         ) override;
@@ -145,11 +145,11 @@ class FpySequencer : public FpySequencerComponentBase {
         Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
         ) override;
 
-    //! Implementation for action report_seqDone of state machine
+    //! Implementation for action report_seqSucceeded of state machine
     //! Svc_FpySequencer_SequencerStateMachine
     //!
     //! reports that a sequence was completed
-    void Svc_FpySequencer_SequencerStateMachine_action_report_seqDone(
+    void Svc_FpySequencer_SequencerStateMachine_action_report_seqSucceeded(
         SmId smId,                                             //!< The state machine id
         Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
         ) override;
@@ -159,6 +159,14 @@ class FpySequencer : public FpySequencerComponentBase {
     //!
     //! reports that a sequence was cancelled
     void Svc_FpySequencer_SequencerStateMachine_action_report_seqCancelled(
+        SmId smId,                                             //!< The state machine id
+        Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
+        ) override;
+
+    //! Implementation for action warn_invalidCmd of state machine Svc_FpySequencer_SequencerStateMachine
+    //!
+    //! warns that the user cmd was invalid
+    void Svc_FpySequencer_SequencerStateMachine_action_warn_invalidCmd(
         SmId smId,                                             //!< The state machine id
         Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
         ) override;
@@ -200,12 +208,26 @@ class FpySequencer : public FpySequencerComponentBase {
         Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
         ) override;
 
-    //! Implementation for action warn_noSequenceToCancel of state machine
-    //! Svc_FpySequencer_SequencerStateMachine
+    //! Implementation for action setGoalState_IDLE of state machine Svc_FpySequencer_SequencerStateMachine
     //!
-    //! warns that the user said to cancel a sequence but there is no sequence to
-    //! cancel
-    void Svc_FpySequencer_SequencerStateMachine_action_warn_noSequenceToCancel(
+    //! sets the goal state to IDLE
+    void Svc_FpySequencer_SequencerStateMachine_action_setGoalState_IDLE(
+        SmId smId,                                             //!< The state machine id
+        Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
+        ) override;
+
+    //! Implementation for action cmdResponse_OK of state machine Svc_FpySequencer_SequencerStateMachine
+    //!
+    //! responds to the calling command with OK
+    void Svc_FpySequencer_SequencerStateMachine_action_cmdResponse_OK(
+        SmId smId,                                             //!< The state machine id
+        Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
+        ) override;
+
+    //! Implementation for action cmdResponse_EXECUTION_ERROR of state machine Svc_FpySequencer_SequencerStateMachine
+    //!
+    //! responds to the calling command with EXECUTION_ERROR
+    void Svc_FpySequencer_SequencerStateMachine_action_cmdResponse_EXECUTION_ERROR(
         SmId smId,                                             //!< The state machine id
         Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
         ) override;
@@ -227,23 +249,34 @@ class FpySequencer : public FpySequencerComponentBase {
 
     enum { CRC_INITIAL_VALUE = 0xFFFFFFFFU };
 
-    // assigned by the user
-    Fw::String m_sequenceFilePath;
-    // created by opening the m_sequenceFilePath
-    Os::File m_sequenceFileObj;
-    // whether or not the sequence we're about to run should return immediately or
-    // block on completion
-    FpySequencer_BlockState m_sequenceShouldBlock;
-
-    Fpy::Sequence m_sequenceObj;
-
-    // live running computation of CRC (updated as we read)
-    U32 m_computedCRC;
-
     // allocated at runtime
     Fw::ExternalSerializeBuffer m_sequenceBuffer;
     // id of allocator that gave us m_sequenceBuffer
     NATIVE_INT_TYPE m_allocatorId;
+
+    // assigned by the user
+    Fw::String m_sequenceFilePath;
+    // used to open and read the m_sequenceFilePath
+    Os::File m_sequenceFileObj;
+    // the sequence, loaded in memory
+    Fpy::Sequence m_sequenceObj;
+    // live running computation of CRC (updated as we read)
+    U32 m_computedCRC;
+
+    // whether or not the sequence we're about to run should return immediately or
+    // block on completion
+    FpySequencer_BlockState m_sequenceShouldBlock;
+    // if we are to block on completion, save the opCode and cmdSeq we should return
+    FwOpcodeType m_savedOpCode;
+    U32 m_savedCmdSeq;
+
+    // the goal state is the state that we're trying to reach in the sequencer
+    // if it's RUNNING, then we should promptly go to RUNNING once we validate the
+    // sequence. if it's VALID, we should wait after VALIDATING
+    // @FPRIME guys--if I don't reference this enum in .fpp code, it doesn't get autocoded
+    FpySequencer_GoalState m_goalState;
+
+    bool m_cancelNextStatement;
 
     void allocateBuffer(NATIVE_INT_TYPE identifier, Fw::MemAllocator& allocator, NATIVE_UINT_TYPE bytes);
 

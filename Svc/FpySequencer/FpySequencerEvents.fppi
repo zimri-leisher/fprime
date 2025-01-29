@@ -4,6 +4,13 @@ event InvalidSequencer(
     severity warning high \
     format "Invalid sequence index {}"
 
+event FileOpenError(
+    filePath: string
+    errorCode: I32
+) \
+    severity warning high \
+    format "File open error encountered while opening {}: {}"
+
 event FileReadError(
     filePath: string
     errorCode: I32
@@ -31,3 +38,31 @@ event ReadHeaderSuccess(
 ) \
     severity diagnostic \
     format "Successfully read header of {}"
+
+event ReadBodySuccess(
+    filePath: string
+) \
+    severity diagnostic \
+    format "Successfully read body of {}"
+
+event ReadFooterSuccess(
+    filePath: string
+) \
+    severity diagnostic \
+    format "Successfully read footer of {}"
+
+event SequenceDone(
+    filePath: string
+) \
+    severity activity high \
+    format "Completed sequence file {}"
+
+event SequenceCancelled(
+    filePath: string
+) \
+    severity activity high \
+    format "Cancelled sequence file {}"
+
+event CancellingOnNextStatement() \
+    severity diagnostic \
+    format "Scheduling the sequence for cancellation on the next statement"

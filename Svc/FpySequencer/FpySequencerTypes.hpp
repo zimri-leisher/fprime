@@ -25,9 +25,12 @@ struct Header {
     // the number of statements in the sequence
     U16 m_statementCount;
 
-    static constexpr FwSizeType SERIALIZED_SIZE = sizeof(m_majorVersion) + sizeof(m_minorVersion) +
-                                                  sizeof(m_patchVersion) + sizeof(m_schemaVersion) +
-                                                  sizeof(m_argumentCount) + sizeof(m_statementCount);
+    // the size of the body in bytes
+    U32 m_bodySize;
+
+    static constexpr FwSizeType SERIALIZED_SIZE =
+        sizeof(m_majorVersion) + sizeof(m_minorVersion) + sizeof(m_patchVersion) + sizeof(m_schemaVersion) +
+        sizeof(m_argumentCount) + sizeof(m_statementCount) + sizeof(m_bodySize);
 };
 
 struct Statement {
@@ -45,7 +48,7 @@ struct Footer {
 
 struct Sequence {
     Header m_header;
-    // an array of size m_argumentCount mapping argument position to local
+    // an array of size m_header.m_argumentCount mapping argument position to local
     // variable count
     U8 m_argArray[MAX_SEQUENCE_ARG_COUNT];
     Statement m_statementArray[MAX_SEQUENCE_STATEMENT_COUNT];
