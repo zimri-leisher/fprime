@@ -17,16 +17,16 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_setSequenceFile
     m_sequenceFilePath = value.getfilePath();
 }
 
-//! Implementation for action setSequenceShouldBlock of state machine
+//! Implementation for action setSequenceBlockState of state machine
 //! Svc_FpySequencer_SequencerStateMachine
 //!
 //! sets the block state of the sequence to be run
-void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_setSequenceShouldBlock(
+void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_setSequenceBlockState(
     SmId smId,                                              //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal,  //!< The signal
     const Svc::FpySequencer_SequenceExecutionArgs& value    //!< The value
 ) {
-    m_blockState = value.getblock();
+    m_sequenceBlockState = value.getblock();
 }
 
 //! Implementation for action resetSequenceExecutionArgs of state machine

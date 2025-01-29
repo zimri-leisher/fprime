@@ -63,7 +63,7 @@ state machine SequencerStateMachine {
     @ sets the current sequence file path member var
     action setSequenceFilePath: SequenceExecutionArgs
     @ sets the block state of the sequence to be run
-    action setSequenceShouldBlock: SequenceExecutionArgs
+    action setSequenceBlockState: SequenceExecutionArgs
     @ resets the sequence execution arguments, memory object, CRC, saved opcode/cmdseq
     action resetSequence
     @ opens the sequence file based on the sequence file path member var
@@ -77,10 +77,12 @@ state machine SequencerStateMachine {
     @ closes the open sequence file
     action closeSequenceFile
 
-    @ reports that a sequence was completed
-    action report_seqDone
+    @ reports that a sequence succeeded
+    action report_seqSucceeded
     @ reports that a sequence was cancelled
     action report_seqCancelled
+    @ reports that a sequence failed
+    action report_seqFailed
 
     @ warns that the user cmd was invalid
     action warn_invalidCmd
@@ -116,15 +118,18 @@ state machine SequencerStateMachine {
     @ sequencer is ready to load, validate and run a sequence
     state IDLE {
         # start with an unset sequence file, and unset goal state
-        entry do { closeSequenceFile, resetSequenceExecutionArgs, setGoalState_IDLE }
+        entry do { closeSequenceFile, resetSequence, setGoalState_IDLE }
         # -->
         # wait for a cmd
 
+        ####################
+        # commands         #
+        ####################
         # **valid cmds**
         # validate does not take as input a block state, only a path
         on cmd_VALIDATE do { setGoalState_VALID, setSequenceFilePath } enter VALIDATION
         # run takes both path and block state
-        on cmd_RUN do { setGoalState_RUNNING, setSequenceFilePath, setSequenceShouldBlock } enter VALIDATION
+        on cmd_RUN do { setGoalState_RUNNING, setSequenceFilePath, setSequenceBlockState } enter VALIDATION
 
         # **invalid cmds**
         @ not running a seq
@@ -139,9 +144,9 @@ state machine SequencerStateMachine {
 
         initial enter VALIDATING
 
-        ############
-        # commands #
-        ############
+        ####################
+        # commands         #
+        ####################
         # **valid cmds**
         @ cancelled the sequence while it was validating
         on cmd_CANCEL enter CANCELLED
@@ -158,9 +163,9 @@ state machine SequencerStateMachine {
 
             initial enter OPEN_SEQUENCE_FILE
 
-            ############
-            # commands #
-            ############
+            ####################
+            # commands         #
+            ####################
             @ cannot run validated, not finished validating
             on cmd_RUN_VALIDATED do { warn_invalidCmd }
 
@@ -195,20 +200,19 @@ state machine SequencerStateMachine {
                 on readFooter_success enter VALID
                 on readFooter_failure enter INVALID
             }
-
-            # cmd_RUN_VALIDATED is handled by substates
         }
 
 
+        @ the sequence was valid
         state VALID {
             # close the sequence file now that it's in memory
             entry do { closeSequenceFile }
 
-            ############
-            # commands #
-            ############
-            @ the sequence has already been decided on, so only set the sequenceShouldBlock var
-            on cmd_RUN_VALIDATED do { setSequenceShouldBlock } enter RUNNING
+            ####################
+            # commands         #
+            ####################
+            @ the sequence path has already been decided on, so only set the sequenceShouldBlock var
+            on cmd_RUN_VALIDATED do { setSequenceBlockState } enter RUNNING
 
             initial enter WAIT_FOR_CMD_OR_RUN
             @ decide whether we should stop after validating, or proceed to running
@@ -222,12 +226,10 @@ state machine SequencerStateMachine {
                 # we explicitly ran the VALIDATE cmd, so we can respond now
                 entry do { cmdResponse_OK }
                 # wait here until we get the RUN_VALIDATED cmd
-
-                # **valid cmds**
-                
             }
         }
 
+        @ the sequence was invalid
         state INVALID {
             entry do { warn_invalidSequence, cmdResponse_EXECUTION_ERROR }
             
@@ -262,32 +264,37 @@ state machine SequencerStateMachine {
             on statementFinished_failure enter FAILED
         }
 
+        ####################
+        # commands         #
+        ####################
         # don't immediately enter cancellation. the only valid cancellation
         # point during the run loop is just before we're about to send out
         # a statement
         on cmd_CANCEL do { cancelNextStepStatement }
 
+        @ sequence successfully executed all cmds
+        state SUCCEEDED {
+            # raise OK if we're blocking
+            entry do { report_seqSucceeded, cmdResponse_OK }
+
+            # always succeeds
+            on cmdResponse_OK_done enter IDLE
+        }
+
+        @ sequence did not successfully execute all cmds
+        state FAILED {
+            # raise an execution error if we're blocking
+            entry do { report_seqFailed, cmdResponse_EXECUTION_ERROR }
+
+            # always succeeds
+            on cmdResponse_EXECUTION_ERROR_done enter IDLE
+        }
     }
 
+    @ the sequence that was in validation or running was cancelled
     state CANCELLED {
         # raise an execution error if we're blocking
         entry do { cmdResponse_EXECUTION_ERROR }
-
-        # always succeeds
-        on cmdResponse_EXECUTION_ERROR_done enter IDLE
-    }
-
-    state SUCCEEDED {
-        # raise OK if we're blocking
-        entry do { report_seqSucceeded, cmdResponse_OK }
-
-        # always succeeds
-        on cmdResponse_OK_done enter IDLE
-    }
-
-    state FAILED {
-        # raise an execution error if we're blocking
-        entry do { report_seqFailed, cmdResponse_EXECUTION_ERROR }
 
         # always succeeds
         on cmdResponse_EXECUTION_ERROR_done enter IDLE

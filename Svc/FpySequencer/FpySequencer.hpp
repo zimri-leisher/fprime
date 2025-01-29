@@ -81,11 +81,11 @@ class FpySequencer : public FpySequencerComponentBase {
         const Svc::FpySequencer_SequenceExecutionArgs& value    //!< The value
         ) override;
 
-    //! Implementation for action setSequenceShouldBlock of state machine
+    //! Implementation for action setSequenceBlockState of state machine
     //! Svc_FpySequencer_SequencerStateMachine
     //!
     //! sets the block state of the sequence to be run
-    void Svc_FpySequencer_SequencerStateMachine_action_setSequenceShouldBlock(
+    void Svc_FpySequencer_SequencerStateMachine_action_setSequenceBlockState(
         SmId smId,                                              //!< The state machine id
         Svc_FpySequencer_SequencerStateMachine::Signal signal,  //!< The signal
         const Svc::FpySequencer_SequenceExecutionArgs& value    //!< The value
@@ -265,7 +265,7 @@ class FpySequencer : public FpySequencerComponentBase {
 
     // whether or not the sequence we're about to run should return immediately or
     // block on completion
-    FpySequencer_BlockState m_sequenceShouldBlock;
+    FpySequencer_BlockState m_sequenceBlockState;
     // if we are to block on completion, save the opCode and cmdSeq we should return
     FwOpcodeType m_savedOpCode;
     U32 m_savedCmdSeq;
