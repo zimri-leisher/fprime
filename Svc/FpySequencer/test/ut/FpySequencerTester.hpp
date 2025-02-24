@@ -37,19 +37,10 @@ class FpySequencerTester : public FpySequencerGTestBase {
   // ----------------------------------------------------------------------
   // Tests
   // ----------------------------------------------------------------------
-
-  void testDispatch();
-  void testLogStatus();
-
  private:
   // ----------------------------------------------------------------------
   // Handlers for typed from ports
   // ----------------------------------------------------------------------
-
-  void seqRunOut_handler(
-        FwIndexType portNum, //!< The port number
-        const Fw::StringBase& filename //!< The sequence file
-  );
 
  private:
   // ----------------------------------------------------------------------

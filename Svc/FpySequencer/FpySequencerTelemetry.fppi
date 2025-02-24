@@ -1,6 +1,6 @@
 @ Number of sequences completed
 telemetry CompletedCount: U32
-telemetry GoalState: GoalState
+# telemetry GoalState: GoalState
 
 #@ The number of Load commands executed
 #telemetry CS_LoadCommands: U32 id 0
