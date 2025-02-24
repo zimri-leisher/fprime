@@ -19,9 +19,6 @@
 #include <cstdlib>
 #include <unistd.h>
 
-//#define DEBUG_PRINT(...) printf(##__VA_ARGS__)
-#define DEBUG_PRINT(...)
-
 namespace Svc {
 
   // ----------------------------------------------------------------------
@@ -82,7 +79,7 @@ namespace Svc {
 
   void UdpSenderComponentImpl ::
     Sched_handler(
-        const NATIVE_INT_TYPE portNum,
+        const FwIndexType portNum,
         U32 context
     )
   {
@@ -96,7 +93,7 @@ namespace Svc {
 
   void UdpSenderComponentImpl ::
     PortsIn_handler(
-        NATIVE_INT_TYPE portNum, /*!< The port number*/
+        FwIndexType portNum, /*!< The port number*/
         Fw::SerializeBufferBase &Buffer /*!< The serialization buffer*/
     )
   {
@@ -105,7 +102,6 @@ namespace Svc {
           return;
       }
 
-      DEBUG_PRINT("PortsIn_handler: %d\n",portNum);
       Fw::SerializeStatus stat;
       m_sendBuff.resetSer();
 
@@ -119,7 +115,6 @@ namespace Svc {
       stat = m_sendBuff.serialize(Buffer);
       FW_ASSERT(Fw::FW_SERIALIZE_OK == stat,stat);
       // send on UDP socket
-      DEBUG_PRINT("Sending %d bytes\n",m_sendBuff.getBuffLength());
       ssize_t sendStat = sendto(this->m_fd,
               m_sendBuff.getBuffAddr(),
               m_sendBuff.getBuffLength(),

@@ -42,6 +42,7 @@ argname
 argtype
 arinc
 arpa
+ASize
 ASTRING
 ATester
 ATL
@@ -103,6 +104,7 @@ carg
 caselessmatch
 CBF
 CBLOCK
+CComponent
 CCSDS
 ccsparc
 cdefs
@@ -257,6 +259,7 @@ dps
 DPWRITER
 DRAINBUFFERS
 drv
+drvtcpserversocket
 dsdl
 dspal
 Dstate
@@ -362,6 +365,8 @@ getcontext
 getdata
 getdefaultencoding
 getextern
+getf
+geti
 getinput
 getm
 getquaternion
@@ -566,6 +571,7 @@ mscfile
 mseconds
 mstarch
 mstat
+MState
 mstring
 mtype
 multiarch
@@ -803,6 +809,7 @@ saveop
 sbb
 SBF
 SBINDIR
+sbom
 Scatterometer
 scc
 schematron
@@ -863,6 +870,7 @@ sourceforge
 Sourcetrail
 sourcing
 spacetech
+spdx
 SPHINXBUILD
 SPHINXOPTS
 spi
@@ -904,6 +912,7 @@ suseconds
 SVCLOGFILE
 SVCLOGFILEL
 swcaegitadmin
+syft
 synchronicity
 synopsys
 sysconf
