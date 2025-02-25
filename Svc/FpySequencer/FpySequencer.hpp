@@ -299,10 +299,14 @@ class FpySequencer : public FpySequencerComponentBase {
 
   void finalizeComputedCRC();
 
-  void openSequenceFile();
-  void readHeader();
-  void readBody();
-  void readFooter();
+  // opens the sequence file. return true if success
+  bool openSequenceFile();
+  // reads the header of the sequence file. return true if success
+  bool readHeader();
+  // reads the body of the sequence file. return true if success
+  bool readBody();
+  // reads the footer of the sequence file. return true if success
+  bool readFooter();
 };
 
 }  // namespace Svc

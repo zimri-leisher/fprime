@@ -119,7 +119,7 @@ void FpySequencer::CANCEL_cmdHandler(
 }
 
 //! opens the sequence file based on the sequence file path member var
-void FpySequencer::openSequenceFile() {
+bool FpySequencer::openSequenceFile() {
   FW_ASSERT(m_sequenceFilePath.length() > 0);
   // make sure not already open
   FW_ASSERT(!m_sequenceFileObj.isOpen());
@@ -127,17 +127,16 @@ void FpySequencer::openSequenceFile() {
       m_sequenceFileObj.open(m_sequenceFilePath.toChar(), Os::File::OPEN_READ);
 
   if (openStatus == Os::File::Status::OP_OK) {
-    this->sequencer_sendSignal_result_success();
-    return;
+    return false;
   }
 
   this->log_WARNING_HI_FileOpenError(m_sequenceFilePath,
                                      static_cast<I32>(openStatus));
-  this->sequencer_sendSignal_result_failure();
+  return true;
 }
 
 //! loads from disk and formats the header into memory representation
-void FpySequencer::readHeader() {
+bool FpySequencer::readHeader() {
   FW_ASSERT(m_sequenceFileObj.isOpen());
   FwSignedSizeType readLen = Fpy::Header::SERIALIZED_SIZE;
 
@@ -151,14 +150,12 @@ void FpySequencer::readHeader() {
   if (fileStatus != Os::File::OP_OK) {
     this->log_WARNING_HI_FileReadError(m_sequenceFilePath,
                                        static_cast<I32>(fileStatus));
-    this->sequencer_sendSignal_result_failure();
-    return;
+    return false;
   }
 
   if (readLen != Fpy::Header::SERIALIZED_SIZE) {
     this->log_WARNING_HI_EndOfFileError(m_sequenceFilePath);
-    this->sequencer_sendSignal_result_failure();
-    return;
+    return false;
   }
 
   Fw::SerializeStatus serializeStatus = m_sequenceBuffer.setBuffLen(
@@ -172,8 +169,7 @@ void FpySequencer::readHeader() {
     this->log_WARNING_HI_DeserializeError(
         m_sequenceFilePath, static_cast<I32>(serializeStatus),
         m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
-    this->sequencer_sendSignal_result_failure();
-    return;
+    return false;
   }
 
   // Minor version
@@ -183,8 +179,7 @@ void FpySequencer::readHeader() {
     this->log_WARNING_HI_DeserializeError(
         m_sequenceFilePath, static_cast<I32>(serializeStatus),
         m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
-    this->sequencer_sendSignal_result_failure();
-    return;
+    return false;
   }
 
   // Patch version
@@ -194,8 +189,7 @@ void FpySequencer::readHeader() {
     this->log_WARNING_HI_DeserializeError(
         m_sequenceFilePath, static_cast<I32>(serializeStatus),
         m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
-    this->sequencer_sendSignal_result_failure();
-    return;
+    return false;
   }
 
   // Schema version
@@ -205,8 +199,7 @@ void FpySequencer::readHeader() {
     this->log_WARNING_HI_DeserializeError(
         m_sequenceFilePath, static_cast<I32>(serializeStatus),
         m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
-    this->sequencer_sendSignal_result_failure();
-    return;
+    return false;
   }
 
   // Argument count
@@ -216,8 +209,7 @@ void FpySequencer::readHeader() {
     this->log_WARNING_HI_DeserializeError(
         m_sequenceFilePath, static_cast<I32>(serializeStatus),
         m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
-    this->sequencer_sendSignal_result_failure();
-    return;
+    return false;
   }
 
   // Statement count
@@ -227,8 +219,7 @@ void FpySequencer::readHeader() {
     this->log_WARNING_HI_DeserializeError(
         m_sequenceFilePath, static_cast<I32>(serializeStatus),
         m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
-    this->sequencer_sendSignal_result_failure();
-    return;
+    return false;
   }
 
   // File size
@@ -238,16 +229,15 @@ void FpySequencer::readHeader() {
     this->log_WARNING_HI_DeserializeError(
         m_sequenceFilePath, static_cast<I32>(serializeStatus),
         m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
-    this->sequencer_sendSignal_result_failure();
-    return;
+    return false;
   }
 
   this->log_DIAGNOSTIC_ReadHeaderSuccess(m_sequenceFilePath);
-  this->sequencer_sendSignal_result_success();
+  return true;
 }
 
 //! loads from disk and formats the body into memory representation
-void FpySequencer::readBody() {
+bool FpySequencer::readBody() {
   FW_ASSERT(m_sequenceFileObj.isOpen());
   FwSignedSizeType readLen = m_sequenceObj.m_header.m_bodySize;
 
@@ -261,17 +251,17 @@ void FpySequencer::readBody() {
   if (fileStatus != Os::File::OP_OK) {
     this->log_WARNING_HI_FileReadError(m_sequenceFilePath,
                                        static_cast<I32>(fileStatus));
-    this->sequencer_sendSignal_result_failure();
-    return;
+    return false;
   }
 
   if (readLen != Fpy::Header::SERIALIZED_SIZE) {
     this->log_WARNING_HI_EndOfFileError(m_sequenceFilePath);
-    this->sequencer_sendSignal_result_failure();
-    return;
+    return false;
   }
 
-  Fw::SerializeStatus serializeStatus;
+  Fw::SerializeStatus serializeStatus = m_sequenceBuffer.setBuffLen(
+      static_cast<Fw::Serializable::SizeType>(readLen));
+  FW_ASSERT(serializeStatus == Fw::FW_SERIALIZE_OK, serializeStatus);
 
   U8 remainingArgMappings = m_sequenceObj.m_header.m_argumentCount;
   while (remainingArgMappings > 0) {
@@ -282,8 +272,7 @@ void FpySequencer::readBody() {
       this->log_WARNING_HI_DeserializeError(
           m_sequenceFilePath, static_cast<I32>(serializeStatus),
           m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
-      this->sequencer_sendSignal_result_failure();
-      return;
+      return false;
     }
     remainingArgMappings--;
   }
@@ -298,8 +287,7 @@ void FpySequencer::readBody() {
       this->log_WARNING_HI_DeserializeError(
           m_sequenceFilePath, static_cast<I32>(serializeStatus),
           m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
-      this->sequencer_sendSignal_result_failure();
-      return;
+      return false;
     }
 
     // arg buf
@@ -308,29 +296,54 @@ void FpySequencer::readBody() {
       this->log_WARNING_HI_DeserializeError(
           m_sequenceFilePath, static_cast<I32>(serializeStatus),
           m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
-      this->sequencer_sendSignal_result_failure();
-      return;
+      return false;
     }
     remainingStatements--;
   }
 
   this->log_DIAGNOSTIC_ReadBodySuccess(m_sequenceFilePath);
-  this->sequencer_sendSignal_result_success();
+  return true;
 }
 
 //! loads from disk and formats the footer into memory representation
-void FpySequencer::readFooter() {
-  Fw::SerializeStatus serializeStatus =
+bool FpySequencer::readFooter() {
+  FW_ASSERT(m_sequenceFileObj.isOpen());
+  FwSignedSizeType readLen = Fpy::Footer::SERIALIZED_SIZE;
+
+  const NATIVE_UINT_TYPE capacity = m_sequenceBuffer.getBuffCapacity();
+  FW_ASSERT(capacity >= static_cast<NATIVE_UINT_TYPE>(readLen),
+            static_cast<FwAssertArgType>(capacity),
+            static_cast<FwAssertArgType>(readLen));
+  Os::File::Status fileStatus =
+      m_sequenceFileObj.read(m_sequenceBuffer.getBuffAddr(), readLen);
+
+  if (fileStatus != Os::File::OP_OK) {
+    this->log_WARNING_HI_FileReadError(m_sequenceFilePath,
+                                       static_cast<I32>(fileStatus));
+    return false;
+  }
+
+  if (readLen != Fpy::Header::SERIALIZED_SIZE) {
+    this->log_WARNING_HI_EndOfFileError(m_sequenceFilePath);
+    return false;
+  }
+
+  Fw::SerializeStatus serializeStatus = m_sequenceBuffer.setBuffLen(
+      static_cast<Fw::Serializable::SizeType>(readLen));
+  FW_ASSERT(serializeStatus == Fw::FW_SERIALIZE_OK, serializeStatus);
+
+  // File size
+  serializeStatus =
       m_sequenceBuffer.deserialize(m_sequenceObj.m_footer.m_crc);
   if (serializeStatus != Fw::FW_SERIALIZE_OK) {
     this->log_WARNING_HI_DeserializeError(
         m_sequenceFilePath, static_cast<I32>(serializeStatus),
         m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
-    this->sequencer_sendSignal_result_failure();
-    return;
+    return false;
   }
+
   this->log_DIAGNOSTIC_ReadFooterSuccess(m_sequenceFilePath);
-  this->sequencer_sendSignal_result_success();
+  return true;
 }
 
 }  // namespace Svc

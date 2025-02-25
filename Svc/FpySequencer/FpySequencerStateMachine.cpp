@@ -40,6 +40,7 @@ void FpySequencer::
         SmId smId,  //!< The state machine id
         Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
     ) {
+  // don't bother checking if it's open already, succeed regardless
   m_sequenceFileObj.close();
 }
 
@@ -203,7 +204,30 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_resetSequence(
 void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_validate(
     SmId smId,  //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
-) {}
+) {
+  bool result = this->openSequenceFile();
+  if (!result) {
+    this->sequencer_sendSignal_result_failure();
+    return;
+  }
+  result = this->readHeader();
+  if (!result) {
+    this->sequencer_sendSignal_result_failure();
+    return;
+  }
+  result = this->readBody();
+  if (!result) {
+    this->sequencer_sendSignal_result_failure();
+    return;
+  }
+  result = this->readFooter();
+  if (!result) {
+    this->sequencer_sendSignal_result_failure();
+    return;
+  }
+  this->sequencer_sendSignal_result_success();
+}
+
 // ----------------------------------------------------------------------
 // Functions to implement for internal state machine guards
 // ----------------------------------------------------------------------
