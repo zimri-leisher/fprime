@@ -1,3 +1,4 @@
+#include "Fw/Com/ComPacket.hpp"
 #include "Svc/FpySequencer/FpySequencer.hpp"
 namespace Svc {
 
@@ -17,27 +18,50 @@ void FpySequencer::stepStatement() {
 
     // based on the statement type (directive or cmd)
     // send it to where it needs to go
-    if (checkOpcodeIsDirective(nextStatement.opcode)) {
-        bool result = dispatchDirective(nextStatement);
-        if (result) {
+    bool isDirective = checkOpcodeIsDirective(nextStatement.opcode);
+    bool result = false;
+
+    if (isDirective) {
+        result = dispatchDirective(nextStatement);
+    } else {
+        result = dispatchCommand(nextStatement);
+    }
+
+    if (result) {
+        if (isDirective) {
             this->sequencer_sendSignal_result_stepStatement_successDirective();
         } else {
-            this->sequencer_sendSignal_result_stepStatement_failure();
+            this->sequencer_sendSignal_result_stepStatement_successCmd();
         }
     } else {
-        bool result = dispatchCommand(nextStatement);
-        if (result) {
-            this->sequencer_sendSignal_result_stepStatement_successDirective();
-        } else {
-            this->sequencer_sendSignal_result_stepStatement_failure();
-        }
+        this->sequencer_sendSignal_result_stepStatement_failure();
     }
 }
 
 // dispatches a command out via port.
 // return true if successfully dispatched.
 bool FpySequencer::dispatchCommand(const Fpy::Statement& stmt) {
-    
+    Fw::ComBuffer cmdBuf;
+    Fw::SerializeStatus stat = cmdBuf.serialize(Fw::ComPacket::FW_PACKET_COMMAND);
+    if (stat != Fw::SerializeStatus::FW_SERIALIZE_OK) {
+        this->log_WARNING_HI_SerializeError(cmdBuf.getBuffCapacity(), cmdBuf.getBuffLength(),
+                                            sizeof(Fw::ComPacket::FW_PACKET_COMMAND), stat);
+        return false;
+    }
+    stat = cmdBuf.serialize(stmt.opcode);
+    if (stat != Fw::SerializeStatus::FW_SERIALIZE_OK) {
+        this->log_WARNING_HI_SerializeError(cmdBuf.getBuffCapacity(), cmdBuf.getBuffLength(), sizeof(stmt.opcode),
+                                            stat);
+        return false;
+    }
+    stat = cmdBuf.serialize(stmt.args.getBuffAddr(), stmt.args.getBuffLength(), true);
+    if (stat != Fw::SerializeStatus::FW_SERIALIZE_OK) {
+        this->log_WARNING_HI_SerializeError(cmdBuf.getBuffCapacity(), cmdBuf.getBuffLength(), stmt.args.getBuffLength(),
+                                            stat);
+        return false;
+    }
+    this->cmdOut_out(0, cmdBuf, 0);
+    return true;
 }
 
 bool FpySequencer::checkOpcodeIsDirective(FwOpcodeType opcode) {

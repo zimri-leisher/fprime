@@ -104,7 +104,9 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_report_seqFaile
 void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_stepStatement(
     SmId smId,                                             //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
-) {}
+) {
+  this->stepStatement();
+}
 
 //! Implementation for action cancelNextStepStatement of state machine
 //! Svc_FpySequencer_SequencerStateMachine

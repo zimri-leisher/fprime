@@ -82,3 +82,12 @@ event UnknownSequencerDirective(
 ) \
     severity warning high \
     format "Unknown sequencer directive id {}"
+
+event SerializeError(
+    bufCapacity: U32, 
+    curPos: U32, 
+    writeSize: U32, 
+    errorCode: U8
+) \
+    severity warning high \
+    format "Serialization failure: buf capacity {}, cur write pos {}, write size {}, error code {}"
