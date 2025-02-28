@@ -154,11 +154,11 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_setGoalState_ID
     m_goalState = FpySequencer_GoalState::IDLE;
 }
 
-//! Implementation for action cmdResponse_OK of state machine
+//! Implementation for action cmdResponseOut_OK of state machine
 //! Svc_FpySequencer_SequencerStateMachine
 //!
 //! responds to the calling command with OK
-void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_cmdResponse_OK(
+void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_cmdResponseOut_OK(
     SmId smId,                                             //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
 ) {
@@ -168,11 +168,11 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_cmdResponse_OK(
     }
 }
 
-//! Implementation for action cmdResponse_EXECUTION_ERROR of state machine
+//! Implementation for action cmdResponseOut_EXECUTION_ERROR of state machine
 //! Svc_FpySequencer_SequencerStateMachine
 //!
 //! responds to the calling command with EXECUTION_ERROR
-void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_cmdResponse_EXECUTION_ERROR(
+void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_cmdResponseOut_EXECUTION_ERROR(
     SmId smId,                                             //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
 ) {

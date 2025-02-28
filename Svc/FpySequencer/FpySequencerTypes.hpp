@@ -63,15 +63,20 @@ struct Runtime {
     // the index of the next statement to be executed
     U32 statementIndex = 0;
 
+    // the opcode of the statement that is currently executing
+    FwOpcodeType currentStatementOpcode = 0;
+
     // whether we should cancel the sequence execution before trying to start
     // the next statement
     bool cancelNextStatement = false;
+
+
 };
 
 enum DirectiveId : FwOpcodeType {
     WAIT_REL = 0x00000000,
     WAIT_ABS = 0x00000001,
-    MAX_DIRECTIVE_ID = 0x00000010
+    MAX_DIRECTIVE_ID = 0x00000040
 };
 
 }  // namespace Fpy

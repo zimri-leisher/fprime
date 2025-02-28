@@ -211,20 +211,20 @@ class FpySequencer : public FpySequencerComponentBase {
         Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
         ) override;
 
-    //! Implementation for action cmdResponse_OK of state machine
+    //! Implementation for action cmdResponseOut_OK of state machine
     //! Svc_FpySequencer_SequencerStateMachine
     //!
     //! responds to the calling command with OK
-    void Svc_FpySequencer_SequencerStateMachine_action_cmdResponse_OK(
+    void Svc_FpySequencer_SequencerStateMachine_action_cmdResponseOut_OK(
         SmId smId,                                             //!< The state machine id
         Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
         ) override;
 
-    //! Implementation for action cmdResponse_EXECUTION_ERROR of state machine
+    //! Implementation for action cmdResponseOut_EXECUTION_ERROR of state machine
     //! Svc_FpySequencer_SequencerStateMachine
     //!
     //! responds to the calling command with EXECUTION_ERROR
-    void Svc_FpySequencer_SequencerStateMachine_action_cmdResponse_EXECUTION_ERROR(
+    void Svc_FpySequencer_SequencerStateMachine_action_cmdResponseOut_EXECUTION_ERROR(
         SmId smId,                                             //!< The state machine id
         Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
         ) override;
@@ -337,6 +337,11 @@ class FpySequencer : public FpySequencerComponentBase {
     bool handleDirective_WAIT_REL(const Fpy::Statement& stmt);
 
     bool handleDirective_WAIT_ABS(const Fpy::Statement& stmt);
+
+    void handleCmdResult(FwOpcodeType opCode,             //!< Command Op Code
+                         U32 cmdSeq,                      //!< Command Sequence
+                         const Fw::CmdResponse& response  //!< The command response argument
+    );
 };
 
 }  // namespace Svc

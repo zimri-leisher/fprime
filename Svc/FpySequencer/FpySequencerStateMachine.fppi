@@ -18,6 +18,13 @@ state machine SequencerStateMachine {
     @ called on CANCEL cmd
     signal cmd_CANCEL
 
+    @ called when a statement finishes executing and has failed
+    signal result_statementDone_failure
+    @ called when we received a notification that a statement finished, unexpectedly
+    signal result_statementDone_unexpected
+    @ called when a statement finishes executing and has succeeded
+    signal result_statementDone_success
+
     @ called in stepStatement method when a command was successfully sent to the cmd disp
     signal result_stepStatement_successCmd
     @ called in stepStatement method when a directive was sent to this sequencer
@@ -59,6 +66,8 @@ state machine SequencerStateMachine {
     action report_invalidCmd
     @ warns that the sequence failed validation
     action report_invalidSeq
+    @ warns that a statement response came in unexpectedly
+    action report_unexpectedStatementResponse
 
     @ iterates to the next statement and dispatches it
     action stepStatement
@@ -77,9 +86,9 @@ state machine SequencerStateMachine {
     action setGoalState_IDLE
 
     @ responds to the calling command with OK
-    action cmdResponse_OK
+    action cmdResponseOut_OK
     @ responds to the calling command with EXECUTION_ERROR
-    action cmdResponse_EXECUTION_ERROR
+    action cmdResponseOut_EXECUTION_ERROR
 
     ####################
     # topology         #
@@ -104,16 +113,23 @@ state machine SequencerStateMachine {
 
         # **invalid cmds**
         @ not running a seq
-        on cmd_CANCEL do { report_invalidCmd, cmdResponse_EXECUTION_ERROR }
+        on cmd_CANCEL do { report_invalidCmd, cmdResponseOut_EXECUTION_ERROR }
         @ haven't validated yet
-        on cmd_RUN_VALIDATED do { report_invalidCmd, cmdResponse_EXECUTION_ERROR }
+        on cmd_RUN_VALIDATED do { report_invalidCmd, cmdResponseOut_EXECUTION_ERROR }
+
+        ####################
+        # misc             #
+        ####################
+        on result_statementDone_failure do { report_unexpectedStatementResponse }
+        on result_statementDone_unexpected do { report_unexpectedStatementResponse }
+        on result_statementDone_success do { report_unexpectedStatementResponse }
     }
 
     state VALIDATING {
 
         entry do { validate }
 
-        on result_failure do { report_invalidSeq, cmdResponse_EXECUTION_ERROR } enter IDLE
+        on result_failure do { report_invalidSeq, cmdResponseOut_EXECUTION_ERROR } enter IDLE
         # close the sequence file now that it's in memory
         on result_success do { closeSequenceFile } enter VALID
 
@@ -122,15 +138,20 @@ state machine SequencerStateMachine {
         ####################
         # **valid cmds**
         @ cancelled the sequence while it was validating
-        on cmd_CANCEL do { report_seqCancelled, cmdResponse_EXECUTION_ERROR } enter IDLE
+        on cmd_CANCEL do { report_seqCancelled, cmdResponseOut_EXECUTION_ERROR } enter IDLE
 
         # **invalid cmds**
         @ already validating
-        on cmd_VALIDATE do { report_invalidCmd, cmdResponse_EXECUTION_ERROR }
+        on cmd_VALIDATE do { report_invalidCmd, cmdResponseOut_EXECUTION_ERROR }
         @ cannot run while validating
-        on cmd_RUN do { report_invalidCmd, cmdResponse_EXECUTION_ERROR }
+        on cmd_RUN do { report_invalidCmd, cmdResponseOut_EXECUTION_ERROR }
         # cannot run validated, haven't finished validating
-        on cmd_RUN_VALIDATED do { report_invalidCmd, cmdResponse_EXECUTION_ERROR }
+        on cmd_RUN_VALIDATED do { report_invalidCmd, cmdResponseOut_EXECUTION_ERROR }
+
+        ####################
+        # misc             #
+        ####################
+        on statementResponseIn do { report_unexpectedStatementResponse }
     }
 
     @ decide whether we should stop after validating, or proceed to running
@@ -144,7 +165,7 @@ state machine SequencerStateMachine {
 
         # we can only get to this state if we explicitly ran the VALIDATE cmd
         # that means now's the time to return a response
-        entry do { cmdResponse_OK }
+        entry do { cmdResponseOut_OK }
         # wait here until we get the RUN_VALIDATED cmd
 
         ####################
@@ -152,15 +173,20 @@ state machine SequencerStateMachine {
         ####################
         # **valid cmds**
         @ cancelled the sequence after we validated it
-        on cmd_CANCEL do { report_seqCancelled, cmdResponse_EXECUTION_ERROR } enter IDLE
+        on cmd_CANCEL do { report_seqCancelled, cmdResponseOut_EXECUTION_ERROR } enter IDLE
         @ the sequence path has already been decided on, so only set the sequenceShouldBlock var
         on cmd_RUN_VALIDATED do { setSequenceBlockState } enter RUNNING
 
         # **invalid cmds**
         @ already validated
-        on cmd_VALIDATE do { report_invalidCmd, cmdResponse_EXECUTION_ERROR }
+        on cmd_VALIDATE do { report_invalidCmd, cmdResponseOut_EXECUTION_ERROR }
         @ cannot run a new sequence, must cancel first
-        on cmd_RUN do { report_invalidCmd, cmdResponse_EXECUTION_ERROR }
+        on cmd_RUN do { report_invalidCmd, cmdResponseOut_EXECUTION_ERROR }
+
+        ####################
+        # misc             #
+        ####################
+        on statementResponseIn do { report_unexpectedStatementResponse }
     }
 
     @ sequencer is executing all statements in the sequence
@@ -171,23 +197,23 @@ state machine SequencerStateMachine {
         state STEP_STATEMENT {
             entry do { stepStatement }
             # -->
-            on result_stepStatement_cancelled do { report_seqCancelled, cmdResponse_EXECUTION_ERROR } enter IDLE
-            on result_stepStatement_noMoreStatements do { report_seqSucceeded, cmdResponse_OK } enter IDLE
-            on result_stepStatement_failure do { report_seqFailed, cmdResponse_EXECUTION_ERROR } enter IDLE
+            on result_stepStatement_cancelled do { report_seqCancelled, cmdResponseOut_EXECUTION_ERROR } enter IDLE
+            on result_stepStatement_noMoreStatements do { report_seqSucceeded, cmdResponseOut_OK } enter IDLE
+            on result_stepStatement_failure do { report_seqFailed, cmdResponseOut_EXECUTION_ERROR } enter IDLE
             on result_stepStatement_successCmd enter AWAIT_CMD
             on result_stepStatement_successDirective enter AWAIT_DIRECTIVE
         }
         
         @ sequencer is awaiting the execution result of a directive
         state AWAIT_DIRECTIVE {
-            on result_success enter STEP_STATEMENT
-            on result_failure do { report_seqFailed, cmdResponse_EXECUTION_ERROR } enter IDLE
+            on statementResponseIn enter STEP_STATEMENT
+            on result_failure do { report_seqFailed, cmdResponseOut_EXECUTION_ERROR } enter IDLE
         }
 
         @ sequencer is awaiting the execution result of a cmd
         state AWAIT_CMD {
             on result_success enter STEP_STATEMENT
-            on result_failure do { report_seqFailed, cmdResponse_EXECUTION_ERROR } enter IDLE
+            on result_failure do { report_seqFailed, cmdResponseOut_EXECUTION_ERROR } enter IDLE
         }
 
         ####################
@@ -201,10 +227,10 @@ state machine SequencerStateMachine {
 
         # **invalid cmds**
         @ cant validate a seq while running one
-        on cmd_VALIDATE do { report_invalidCmd, cmdResponse_EXECUTION_ERROR }
+        on cmd_VALIDATE do { report_invalidCmd, cmdResponseOut_EXECUTION_ERROR }
         @ already running a seq
-        on cmd_RUN do { report_invalidCmd, cmdResponse_EXECUTION_ERROR }
+        on cmd_RUN do { report_invalidCmd, cmdResponseOut_EXECUTION_ERROR }
         @ already running a seq
-        on cmd_RUN_VALIDATED do { report_invalidCmd, cmdResponse_EXECUTION_ERROR }
+        on cmd_RUN_VALIDATED do { report_invalidCmd, cmdResponseOut_EXECUTION_ERROR }
     }
 }

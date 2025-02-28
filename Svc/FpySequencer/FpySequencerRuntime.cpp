@@ -5,6 +5,7 @@ namespace Svc {
 void FpySequencer::stepStatement() {
     // conops:
     // check should cancel
+    // check no more statements
     // get next statement
     // dispatch that statement
 
@@ -13,6 +14,12 @@ void FpySequencer::stepStatement() {
         return;
     }
 
+    if (m_runtime.statementIndex == m_sequenceObj.header.statementCount) {
+        this->sequencer_sendSignal_result_stepStatement_noMoreStatements();
+        return;
+    }
+
+    // check to make sure no array out of bounds
     FW_ASSERT(m_runtime.statementIndex < m_sequenceObj.header.statementCount);
     Fpy::Statement nextStatement = m_sequenceObj.statementArray[m_runtime.statementIndex];
 
@@ -26,6 +33,10 @@ void FpySequencer::stepStatement() {
     } else {
         result = dispatchCommand(nextStatement);
     }
+
+    m_runtime.statementIndex++;
+
+    m_runtime.currentStatementOpcode = nextStatement.opcode;
 
     if (result) {
         if (isDirective) {
@@ -62,6 +73,16 @@ bool FpySequencer::dispatchCommand(const Fpy::Statement& stmt) {
     }
     this->cmdOut_out(0, cmdBuf, 0);
     return true;
+}
+
+void FpySequencer::handleCmdResult(FwOpcodeType opCode,             //!< Command Op Code
+                                   U32 cmdSeq,                      //!< Command Sequence
+                                   const Fw::CmdResponse& response  //!< The command response argument
+) {
+    if (opCode != this->m_runtime.currentStatementOpcode) {
+        // just got an opcode back for a cmd that we didn't expect
+        
+    }
 }
 
 bool FpySequencer::checkOpcodeIsDirective(FwOpcodeType opcode) {
