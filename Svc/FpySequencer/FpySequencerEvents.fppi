@@ -1,8 +1,6 @@
-event InvalidSequencer(
-    idx: U16
-) \
-    severity warning high \
-    format "Invalid sequence index {}"
+event InvalidCommand($state: I32) \
+    severity warning low \
+    format "Cannot run command in state {}"
 
 event FileOpenError(
     filePath: string
@@ -51,6 +49,22 @@ event ReadFooterSuccess(
     severity diagnostic \
     format "Successfully read footer of {}"
 
+event InvalidSequence(filePath: string) \
+    severity warning high \
+    format "Failed to validate sequence {}"
+
+# runtime
+
+event CancellingOnNextStatement() \
+    severity diagnostic \
+    format "Scheduling the sequence for cancellation on the next statement"
+
+event SequenceFailed(
+    filePath: string
+) \
+    severity warning low \
+    format "Failed to execute sequence file {}"
+
 event SequenceDone(
     filePath: string
 ) \
@@ -63,6 +77,8 @@ event SequenceCancelled(
     severity activity high \
     format "Cancelled sequence file {}"
 
-event CancellingOnNextStatement() \
-    severity diagnostic \
-    format "Scheduling the sequence for cancellation on the next statement"
+event UnknownSequencerDirective(
+    $opcode: U32
+) \
+    severity warning high \
+    format "Unknown sequencer directive id {}"

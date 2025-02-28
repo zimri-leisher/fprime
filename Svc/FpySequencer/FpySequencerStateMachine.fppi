@@ -41,8 +41,8 @@ state machine SequencerStateMachine {
     action setSequenceFilePath: SequenceExecutionArgs
     @ sets the block state of the sequence to be run
     action setSequenceBlockState: SequenceExecutionArgs
-    @ resets the sequence execution arguments, memory object, CRC, saved opcode/cmdseq
-    action resetSequence
+    @ resets the sequence runtime
+    action resetRuntime
     @ performs all steps necessary for sequence validation, and raises a signal result_success or result_failure
     action validate
     @ closes the open sequence file
@@ -89,7 +89,7 @@ state machine SequencerStateMachine {
     @ sequencer is ready to load, validate and run a sequence
     state IDLE {
         # start with an unset sequence file, and unset goal state
-        entry do { closeSequenceFile, resetSequence, setGoalState_IDLE }
+        entry do { closeSequenceFile, resetRuntime, setGoalState_IDLE }
         # -->
         # wait for a cmd
 

@@ -37,6 +37,18 @@ module Svc {
 
         state machine instance sequencer: SequencerStateMachine
 
+        @ output port for commands from the seq
+        output port cmdOut: Fw.Com
+
+        @ responses back from commands from the seq
+        async input port cmdResponseIn: Fw.CmdResponse
+
+        @ Ping in port
+        async input port pingIn: Svc.Ping
+
+        @ Ping out port
+        output port pingOut: Svc.Ping
+
         ###############################################################################
         # Standard AC Ports: Required for Channels, Events, Commands, and Parameters  #
         ###############################################################################
