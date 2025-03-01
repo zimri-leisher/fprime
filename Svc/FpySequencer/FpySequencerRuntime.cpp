@@ -40,11 +40,7 @@ void FpySequencer::stepStatement() {
     m_runtime.currentStatementOpcode = nextStatement.opcode;
 
     if (result) {
-        if (isDirective) {
-            this->sequencer_sendSignal_result_stepStatement_successDirective();
-        } else {
-            this->sequencer_sendSignal_result_stepStatement_successCmd();
-        }
+        this->sequencer_sendSignal_result_stepStatement_success();
     } else {
         this->sequencer_sendSignal_result_stepStatement_failure();
     }
@@ -152,7 +148,6 @@ void FpySequencer::sleepUntil(const Fw::Time& time) {
 // checks whether we are still sleeping, and if we are no
 // longer sleeping, returns a directive response
 void FpySequencer::checkShouldWakeUp() {
-
     if (!m_runtime.sleeping) {
         // we are not sleeping
         return;

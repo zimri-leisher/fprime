@@ -25,10 +25,8 @@ state machine SequencerStateMachine {
     @ called when a statement response comes in
     signal statementResponseIn: StatementResponse
 
-    @ called in stepStatement method when a command was successfully sent to the cmd disp
-    signal result_stepStatement_successCmd
-    @ called in stepStatement method when a directive was sent to this sequencer
-    signal result_stepStatement_successDirective
+    @ called in stepStatement method when a statement was successfully dispatched
+    signal result_stepStatement_success
     @ called in stepStatement method when a statement was unable to be sent out
     signal result_stepStatement_failure
     @ called in stepStatement method when there were no more statements in the sequence
@@ -176,20 +174,14 @@ state machine SequencerStateMachine {
             on result_stepStatement_cancelled do { report_seqCancelled, cmdResponseOut_EXECUTION_ERROR } enter IDLE
             on result_stepStatement_noMoreStatements do { report_seqSucceeded, cmdResponseOut_OK } enter IDLE
             on result_stepStatement_failure do { report_seqFailed, cmdResponseOut_EXECUTION_ERROR } enter IDLE
-            on result_stepStatement_successCmd enter AWAIT_CMD
-            on result_stepStatement_successDirective enter AWAIT_DIRECTIVE
+            on result_stepStatement_success enter AWAITING_STATEMENT_RESPONSE
 
 
             on statementResponseIn do { report_unexpectedStatementResponse }
         }
         
         @ sequencer is awaiting the execution result of a directive
-        state AWAIT_DIRECTIVE {
-            on statementResponseIn enter STATEMENT_DONE
-        }
-
-        @ sequencer is awaiting the execution result of a cmd
-        state AWAIT_CMD {
+        state AWAITING_STATEMENT_RESPONSE {
             on statementResponseIn enter STATEMENT_DONE
         }
 
