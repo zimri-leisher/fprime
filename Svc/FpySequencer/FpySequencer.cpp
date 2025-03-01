@@ -43,6 +43,13 @@ void FpySequencer::RUN_cmdHandler(FwOpcodeType opCode,               //!< The op
                                   const Fw::CmdStringArg& fileName,  //!< The name of the sequence file
                                   FpySequencer_BlockState block      //!< Return command status when complete or not
 ) {
+    // can only run a seq while in idle
+    if (sequencer_getState() != FpySequencer_SequencerStateMachineStateMachineBase::State::IDLE) {
+        this->log_WARNING_LO_InvalidCommand(static_cast<I32>(sequencer_getState()));
+        this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::EXECUTION_ERROR);
+        return;
+    }
+
     if (block == FpySequencer_BlockState::BLOCK) {
         // save the opCode and cmdSeq so we can respond later
         m_savedOpCode = opCode;
@@ -64,10 +71,18 @@ void FpySequencer::VALIDATE_cmdHandler(FwOpcodeType opCode,              //!< Th
                                        U32 cmdSeq,                       //!< The command sequence number
                                        const Fw::CmdStringArg& fileName  //!< The name of the sequence file
 ) {
+    // can only validate a seq while in idle
+    if (sequencer_getState() != FpySequencer_SequencerStateMachineStateMachineBase::State::IDLE) {
+        this->log_WARNING_LO_InvalidCommand(static_cast<I32>(sequencer_getState()));
+        this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::EXECUTION_ERROR);
+        return;
+    }
+
+    // validate always blocks until finished, so save opcode/cmdseq
+    // so we can respond once done
     m_savedOpCode = opCode;
     m_savedCmdSeq = cmdSeq;
 
-    // validate always blocks until finished
     this->sequencer_sendSignal_cmd_VALIDATE(
         FpySequencer_SequenceExecutionArgs(fileName, FpySequencer_BlockState::BLOCK));
 }
@@ -80,6 +95,13 @@ void FpySequencer::RUN_VALIDATED_cmdHandler(
     U32 cmdSeq,                    //!< The command sequence number
     FpySequencer_BlockState block  //!< Return command status when complete or not
 ) {
+    // can only RUN_VALIDATED if we have validated and are awaiting this exact cmd
+    if (sequencer_getState() != FpySequencer_SequencerStateMachineStateMachineBase::State::AWAITING_CMD_RUN_VALIDATED) {
+        this->log_WARNING_LO_InvalidCommand(static_cast<I32>(sequencer_getState()));
+        this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::EXECUTION_ERROR);
+        return;
+    }
+
     if (block == FpySequencer_BlockState::BLOCK) {
         // save the opCode and cmdSeq so we can respond later
         m_savedOpCode = opCode;
@@ -100,11 +122,17 @@ void FpySequencer::RUN_VALIDATED_cmdHandler(
 void FpySequencer::CANCEL_cmdHandler(FwOpcodeType opCode,  //!< The opcode
                                      U32 cmdSeq            //!< The command sequence number
 ) {
-    // cancel always blocks, so save the cmdSeq and opcode so we can respond ltr
-    m_savedOpCode = opCode;
-    m_savedCmdSeq = cmdSeq;
+    // only state you can't cancel in is IDLE
+    if (sequencer_getState() == FpySequencer_SequencerStateMachineStateMachineBase::State::IDLE) {
+        this->log_WARNING_LO_InvalidCommand(static_cast<I32>(sequencer_getState()));
+        this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::EXECUTION_ERROR);
+        return;
+    }
 
     this->sequencer_sendSignal_cmd_CANCEL();
+
+    // cancel returns immediately and always succeeds
+    this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
 }
 
 //! opens the sequence file based on the sequence file path member var
@@ -112,6 +140,7 @@ bool FpySequencer::openSequenceFile() {
     FW_ASSERT(m_sequenceFilePath.length() > 0);
     // make sure not already open
     FW_ASSERT(!m_sequenceFileObj.isOpen());
+
     Os::File::Status openStatus = m_sequenceFileObj.open(m_sequenceFilePath.toChar(), Os::File::OPEN_READ);
 
     if (openStatus == Os::File::Status::OP_OK) {
@@ -148,56 +177,56 @@ bool FpySequencer::readHeader() {
     // Major version
     serializeStatus = m_sequenceBuffer.deserialize(m_sequenceObj.header.majorVersion);
     if (serializeStatus != Fw::FW_SERIALIZE_OK) {
-        this->log_WARNING_HI_DeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
-                                              m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
+        this->log_WARNING_HI_FileReadDeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
+                                                      m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
         return false;
     }
 
     // Minor version
     serializeStatus = m_sequenceBuffer.deserialize(m_sequenceObj.header.minorVersion);
     if (serializeStatus != Fw::FW_SERIALIZE_OK) {
-        this->log_WARNING_HI_DeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
-                                              m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
+        this->log_WARNING_HI_FileReadDeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
+                                                      m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
         return false;
     }
 
     // Patch version
     serializeStatus = m_sequenceBuffer.deserialize(m_sequenceObj.header.patchVersion);
     if (serializeStatus != Fw::FW_SERIALIZE_OK) {
-        this->log_WARNING_HI_DeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
-                                              m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
+        this->log_WARNING_HI_FileReadDeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
+                                                      m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
         return false;
     }
 
     // Schema version
     serializeStatus = m_sequenceBuffer.deserialize(m_sequenceObj.header.schemaVersion);
     if (serializeStatus != Fw::FW_SERIALIZE_OK) {
-        this->log_WARNING_HI_DeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
-                                              m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
+        this->log_WARNING_HI_FileReadDeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
+                                                      m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
         return false;
     }
 
     // Argument count
     serializeStatus = m_sequenceBuffer.deserialize(m_sequenceObj.header.argumentCount);
     if (serializeStatus != Fw::FW_SERIALIZE_OK) {
-        this->log_WARNING_HI_DeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
-                                              m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
+        this->log_WARNING_HI_FileReadDeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
+                                                      m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
         return false;
     }
 
     // Statement count
     serializeStatus = m_sequenceBuffer.deserialize(m_sequenceObj.header.statementCount);
     if (serializeStatus != Fw::FW_SERIALIZE_OK) {
-        this->log_WARNING_HI_DeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
-                                              m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
+        this->log_WARNING_HI_FileReadDeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
+                                                      m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
         return false;
     }
 
     // File size
     serializeStatus = m_sequenceBuffer.deserialize(m_sequenceObj.header.bodySize);
     if (serializeStatus != Fw::FW_SERIALIZE_OK) {
-        this->log_WARNING_HI_DeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
-                                              m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
+        this->log_WARNING_HI_FileReadDeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
+                                                      m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
         return false;
     }
 
@@ -233,8 +262,9 @@ bool FpySequencer::readBody() {
         // local variable index of arg $remainingArgMappings - 1
         serializeStatus = m_sequenceBuffer.deserialize(m_sequenceObj.argArray[remainingArgMappings - 1]);
         if (serializeStatus != Fw::FW_SERIALIZE_OK) {
-            this->log_WARNING_HI_DeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
-                                                  m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
+            this->log_WARNING_HI_FileReadDeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
+                                                          m_sequenceBuffer.getBuffLeft(),
+                                                          m_sequenceBuffer.getBuffLength());
             return false;
         }
         remainingArgMappings--;
@@ -246,16 +276,18 @@ bool FpySequencer::readBody() {
         // opcode
         serializeStatus = m_sequenceBuffer.deserialize(statement.opcode);
         if (serializeStatus != Fw::FW_SERIALIZE_OK) {
-            this->log_WARNING_HI_DeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
-                                                  m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
+            this->log_WARNING_HI_FileReadDeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
+                                                          m_sequenceBuffer.getBuffLeft(),
+                                                          m_sequenceBuffer.getBuffLength());
             return false;
         }
 
         // arg buf
         serializeStatus = m_sequenceBuffer.deserialize(statement.args);
         if (serializeStatus != Fw::FW_SERIALIZE_OK) {
-            this->log_WARNING_HI_DeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
-                                                  m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
+            this->log_WARNING_HI_FileReadDeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
+                                                          m_sequenceBuffer.getBuffLeft(),
+                                                          m_sequenceBuffer.getBuffLength());
             return false;
         }
         remainingStatements--;
@@ -291,13 +323,20 @@ bool FpySequencer::readFooter() {
     // File size
     serializeStatus = m_sequenceBuffer.deserialize(m_sequenceObj.footer.crc);
     if (serializeStatus != Fw::FW_SERIALIZE_OK) {
-        this->log_WARNING_HI_DeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
-                                              m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
+        this->log_WARNING_HI_FileReadDeserializeError(m_sequenceFilePath, static_cast<I32>(serializeStatus),
+                                                      m_sequenceBuffer.getBuffLeft(), m_sequenceBuffer.getBuffLength());
         return false;
     }
 
     this->log_DIAGNOSTIC_ReadFooterSuccess(m_sequenceFilePath);
     return true;
+}
+
+//! Handler for input port checkTimer
+void FpySequencer::checkTimer_handler(FwIndexType portNum,  //!< The port number
+                                      U32 context           //!< The call order
+) {
+    this->checkShouldWakeUp();
 }
 
 void FpySequencer::pingIn_handler(FwIndexType portNum, /*!< The port number*/
@@ -312,6 +351,8 @@ void FpySequencer::cmdResponseIn_handler(FwIndexType portNum,             //!< T
                                          FwOpcodeType opCode,             //!< Command Op Code
                                          U32 cmdSeq,                      //!< Command Sequence
                                          const Fw::CmdResponse& response  //!< The command response argument
-) {}
+) {
+    this->handleStatementResult(opCode, response);
+}
 
 }  // namespace Svc

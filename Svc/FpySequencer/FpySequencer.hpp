@@ -165,6 +165,16 @@ class FpySequencer : public FpySequencerComponentBase {
         Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
         ) override;
 
+    //! Implementation for action report_unexpectedStatementResponse of state machine
+    //! Svc_FpySequencer_SequencerStateMachine
+    //!
+    //! warns that a statement response came in unexpectedly
+    void Svc_FpySequencer_SequencerStateMachine_action_report_unexpectedStatementResponse(
+        SmId smId,                                              //!< The state machine id
+        Svc_FpySequencer_SequencerStateMachine::Signal signal,  //!< The signal
+        const Svc::FpySequencer_StatementResponse& value        //!< The value
+        ) override;
+
     //! Implementation for action stepStatement of state machine
     //! Svc_FpySequencer_SequencerStateMachine
     //!
@@ -249,6 +259,11 @@ class FpySequencer : public FpySequencerComponentBase {
     // Handlers to implement for typed input ports
     // ----------------------------------------------------------------------
 
+    //! Handler for input port checkTimer
+    void checkTimer_handler(FwIndexType portNum,  //!< The port number
+                            U32 context           //!< The call order
+                            ) override;
+
     //! Handler for input port cmdResponseIn
     void cmdResponseIn_handler(FwIndexType portNum,             //!< The port number
                                FwOpcodeType opCode,             //!< Command Op Code
@@ -318,6 +333,10 @@ class FpySequencer : public FpySequencerComponentBase {
     // reads the footer of the sequence file. return true if success
     bool readFooter();
 
+    // ----------------------------------------------------------------------
+    // Runtime
+    // ----------------------------------------------------------------------
+
     void stepStatement();
 
     bool checkOpcodeIsDirective(FwOpcodeType opcode);
@@ -330,6 +349,14 @@ class FpySequencer : public FpySequencerComponentBase {
     // return true if successfully handled.
     bool dispatchDirective(const Fpy::Statement& stmt);
 
+    // pause returning a directive response until the given
+    // absolute time
+    void sleepUntil(const Fw::Time& time);
+
+    // checks whether we are still sleeping, and if we are no
+    // longer sleeping, returns a directive response
+    void checkShouldWakeUp();
+
     // ----------------------------------------------------------------------
     // Sequence directive handlers
     // return true if no error was encountered
@@ -338,9 +365,8 @@ class FpySequencer : public FpySequencerComponentBase {
 
     bool handleDirective_WAIT_ABS(const Fpy::Statement& stmt);
 
-    void handleCmdResult(FwOpcodeType opCode,             //!< Command Op Code
-                         U32 cmdSeq,                      //!< Command Sequence
-                         const Fw::CmdResponse& response  //!< The command response argument
+    void handleStatementResult(FwOpcodeType opCode,             //!< Command Op Code
+                               const Fw::CmdResponse& response  //!< The command response argument
     );
 };
 

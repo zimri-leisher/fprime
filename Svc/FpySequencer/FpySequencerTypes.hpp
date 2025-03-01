@@ -1,8 +1,10 @@
 #ifndef __FPY_SEQUENCE_TYPES_HPP__
 #define __FPY_SEQUENCE_TYPES_HPP__
-#include <config/FpConfig.h>
-#include <Fw/Cmd/CmdArgBuffer.hpp>
-#include <config/FppConstantsAc.hpp>
+#include "config/FpConfig.h"
+#include "config/FppConstantsAc.hpp"
+
+#include "Fw/Cmd/CmdArgBuffer.hpp"
+#include "Fw/Time/Time.hpp"
 
 namespace Svc {
 
@@ -59,24 +61,31 @@ struct Sequence {
                                                       Footer::SERIALIZED_SIZE;
 };
 
+enum DirectiveId : FwOpcodeType {
+    INVALID = 0x00000000,
+    WAIT_REL = 0x00000001,
+    WAIT_ABS = 0x00000002,
+    MAX_DIRECTIVE_ID = 0x00000040
+};
+
 struct Runtime {
     // the index of the next statement to be executed
     U32 statementIndex = 0;
 
     // the opcode of the statement that is currently executing
-    FwOpcodeType currentStatementOpcode = 0;
+    FwOpcodeType currentStatementOpcode = DirectiveId::INVALID;
 
     // whether we should cancel the sequence execution before trying to start
     // the next statement
     bool cancelNextStatement = false;
 
-
-};
-
-enum DirectiveId : FwOpcodeType {
-    WAIT_REL = 0x00000000,
-    WAIT_ABS = 0x00000001,
-    MAX_DIRECTIVE_ID = 0x00000040
+    // whether the sequencer is waiting passively for
+    // the wakeupTime to run out before returning a 
+    // statement response
+    bool sleeping = false;
+    // the absolute time we should wait for until returning 
+    // a statement response
+    Fw::Time wakeupTime = Fw::Time();
 };
 
 }  // namespace Fpy

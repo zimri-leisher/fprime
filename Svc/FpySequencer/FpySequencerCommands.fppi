@@ -11,12 +11,13 @@ async command VALIDATE(
                   ) \
     opcode 1
 
-@ Runs a previously validated sequence
+@ Must be called after VALIDATE. Runs the sequence that was validated.
 async command RUN_VALIDATED(
                             $block: BlockState @< Return command status when complete or not
                            ) \
     opcode 2
 
-@ Cancels a running or validated sequence
+@ Cancels a running or validated sequence. After running CANCEL, the sequencer
+@ should return to IDLE
 async command CANCEL() \
     opcode 3

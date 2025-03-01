@@ -22,7 +22,7 @@ event EndOfFileError(
     severity warning high \
     format "End of file encountered unexpectedly while reading {}"
 
-event DeserializeError(
+event FileReadDeserializeError(
     filePath: string
     errorCode: I32
     buffLeft: U32
@@ -91,3 +91,28 @@ event SerializeError(
 ) \
     severity warning high \
     format "Serialization failure: buf capacity {}, cur write pos {}, write size {}, error code {}"
+
+event UnexpectedStatementResponseForState(
+    $state: I32,
+    $opcode: U32,
+    response: Fw.CmdResponse
+) \
+    severity warning low \
+    format "Received a statement response while in state {} (opcode {} response code {})"
+
+event UnexpectedStatementResponseOpcode(
+    expectedOpcode: U32,
+    $opcode: U32,
+    response: Fw.CmdResponse
+) \
+    severity warning low \
+    format "Was expecting a response from statement opcode {}, but got one for opcode {} (response code {})"
+
+event DirectiveDeserializeError(
+    $opcode: U32
+    errorCode: I32
+    buffLeft: U32
+    buffLength: U32
+) \
+    severity warning high \
+    format "Deserialize error encountered while reading directive opcode {}: {} ({} bytes left out of {})"

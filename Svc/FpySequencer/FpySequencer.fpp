@@ -1,11 +1,6 @@
 module Svc {
     @ Dispatches command sequences to available command sequencers
     active component FpySequencer {
-        
-        enum StatementType {
-            COMMAND
-            DIRECTIVE
-        }
 
         enum BlockState {
             BLOCK
@@ -21,7 +16,6 @@ module Svc {
 
         struct StatementResponse {
             $opcode: FwOpcodeType
-            $type: StatementType
             response: Fw.CmdResponse
         }
 
@@ -45,6 +39,10 @@ module Svc {
 
         @ Ping in port
         async input port pingIn: Svc.Ping
+
+        @ port to trigger a wakeup and check if we should
+        @ continue executing or keep on sleeping
+        async input port checkTimer: Svc.Sched
 
         @ Ping out port
         output port pingOut: Svc.Ping

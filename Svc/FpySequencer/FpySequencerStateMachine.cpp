@@ -83,7 +83,19 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_report_invalidS
     SmId smId,                                             //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
 ) {
-  this->log_WARNING_HI_InvalidSequence(m_sequenceFilePath);
+    this->log_WARNING_HI_InvalidSequence(m_sequenceFilePath);
+}
+
+//! Implementation for action report_unexpectedStatementResponse of state machine
+//! Svc_FpySequencer_SequencerStateMachine
+//!
+//! warns that a statement response came in unexpectedly
+void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_report_unexpectedStatementResponse(
+    SmId smId,                                              //!< The state machine id
+    Svc_FpySequencer_SequencerStateMachine::Signal signal,  //!< The signal
+    const Svc::FpySequencer_StatementResponse& value        //!< The value
+) {
+    this->log_WARNING_LO_UnexpectedStatementResponseForState(static_cast<I32>(sequencer_getState()), value.getopcode(), value.getresponse());
 }
 
 //! Implementation for action report_seqFailed of state machine
@@ -94,7 +106,7 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_report_seqFaile
     SmId smId,                                             //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
 ) {
-  this->log_WARNING_LO_SequenceFailed(m_sequenceFilePath);
+    this->log_WARNING_LO_SequenceFailed(m_sequenceFilePath);
 }
 
 //! Implementation for action stepStatement of state machine
@@ -105,7 +117,7 @@ void FpySequencer::Svc_FpySequencer_SequencerStateMachine_action_stepStatement(
     SmId smId,                                             //!< The state machine id
     Svc_FpySequencer_SequencerStateMachine::Signal signal  //!< The signal
 ) {
-  this->stepStatement();
+    this->stepStatement();
 }
 
 //! Implementation for action cancelNextStepStatement of state machine
