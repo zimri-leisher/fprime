@@ -16,6 +16,11 @@ set(SOURCE_FILES
   "${CMAKE_CURRENT_LIST_DIR}/FpySequencerValidationState.cpp"
 )
 
+set(MOD_DEPS
+    Os
+    config
+)
+
 register_fprime_module()
 
 ### UTS ###

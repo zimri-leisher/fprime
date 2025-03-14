@@ -287,13 +287,22 @@ class FpySequencer : public FpySequencerComponentBase {
     void directive_waitRel_internalInterfaceHandler(const Svc::FpySequencer_WaitRelDirective& directive) override;
 
     //! Internal interface handler for directive_setLocalVar
-    void directive_setLocalVar_internalInterfaceHandler(const Svc::FpySequencer_SetLocalVarDirective& directive) override;
+    void directive_setLocalVar_internalInterfaceHandler(
+        const Svc::FpySequencer_SetLocalVarDirective& directive) override;
 
     //! Internal interface handler for directive_goto
     void directive_goto_internalInterfaceHandler(const Svc::FpySequencer_GotoDirective& directive) override;
 
     //! Internal interface handler for directive_if
     void directive_if_internalInterfaceHandler(const Svc::FpySequencer_IfDirective& directive) override;
+
+    //! Internal interface handler for directive_statementBufPop
+    void directive_statementBufPop_internalInterfaceHandler(
+        const Svc::FpySequencer_StatementBufPopDirective& directive) override;
+
+    //! Internal interface handler for directive_directiveBufPush
+    void directive_statementBufPush_internalInterfaceHandler(
+        const Svc::FpySequencer_StatementBufPushDirective& directive) override;
 
     void parametersLoaded() override;
     void parameterUpdated(FwPrmIdType id) override;
@@ -350,9 +359,17 @@ class FpySequencer : public FpySequencerComponentBase {
         Fw::Time wakeupTime = Fw::Time();
 
         // an array containing the values of each local variable in the sequence
-        // TODO type of this should just be bytes, no size needed b/c compiler should
-        // do the type checking for us so we should already know the size in receiver?
-        Fw::StatementArgBuffer localVariables[Fpy::MAX_SEQUENCE_LOCAL_VARIABLES];
+        struct {
+            // the size of the value buf
+            FwSizeType valueSize = 0;
+            // the value buf
+            U8 value[Fpy::MAX_LOCAL_VARIABLE_VALUE_SIZE] = {};
+        } localVariables[Fpy::MAX_SEQUENCE_LOCAL_VARIABLES] = {};
+
+        // whether or not to pop the stmt stack and dispatch it on the next dispatchStatement call
+        bool popStatementOnStack = false;
+        // the statement we're building on the stack
+        Fpy::Statement statementOnStack = Fpy::Statement();
     };
 
     Runtime m_runtime;
@@ -388,6 +405,8 @@ class FpySequencer : public FpySequencerComponentBase {
     // ----------------------------------------------------------------------
     // Runtime
     // ----------------------------------------------------------------------
+
+    const Fpy::Statement* getNextStatement();
 
     // dispatches the next statement
     void dispatchStatement();
