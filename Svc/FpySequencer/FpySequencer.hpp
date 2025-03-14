@@ -286,6 +286,15 @@ class FpySequencer : public FpySequencerComponentBase {
     //! Internal interface handler for directive_waitRel
     void directive_waitRel_internalInterfaceHandler(const Svc::FpySequencer_WaitRelDirective& directive) override;
 
+    //! Internal interface handler for directive_setLocalVar
+    void directive_setLocalVar_internalInterfaceHandler(const Svc::FpySequencer_SetLocalVarDirective& directive) override;
+
+    //! Internal interface handler for directive_goto
+    void directive_goto_internalInterfaceHandler(const Svc::FpySequencer_GotoDirective& directive) override;
+
+    //! Internal interface handler for directive_if
+    void directive_if_internalInterfaceHandler(const Svc::FpySequencer_IfDirective& directive) override;
+
     void parametersLoaded() override;
     void parameterUpdated(FwPrmIdType id) override;
 
@@ -339,6 +348,11 @@ class FpySequencer : public FpySequencerComponentBase {
         // the absolute time we should wait for until returning
         // a statement response
         Fw::Time wakeupTime = Fw::Time();
+
+        // an array containing the values of each local variable in the sequence
+        // TODO type of this should just be bytes, no size needed b/c compiler should
+        // do the type checking for us so we should already know the size in receiver?
+        Fw::StatementArgBuffer localVariables[Fpy::MAX_SEQUENCE_LOCAL_VARIABLES];
     };
 
     Runtime m_runtime;

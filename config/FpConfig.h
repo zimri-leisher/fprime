@@ -295,7 +295,7 @@ typedef FwIndexType FwQueueSizeType;
 
 // Specifies the maximum size of a string in a command argument
 #ifndef FW_CMD_STRING_MAX_SIZE
-#define FW_CMD_STRING_MAX_SIZE 40  //!< Max character size of command string arguments
+#define FW_CMD_STRING_MAX_SIZE 80  //!< Max character size of command string arguments
 #endif
 
 // Normally when a command is deserialized, the handler checks to see if there are any leftover

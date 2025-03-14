@@ -108,6 +108,17 @@ bool FpySequencer::dispatchDirective(const Fpy::Statement& stmt) {
             directive_waitAbs_internalInterfaceInvoke(directive);
             break;
         }
+        case Fpy::DirectiveId::SET_LOCAL_VAR: {
+            FpySequencer_SetLocalVarDirective directive;
+            status = argBuf.deserialize(directive);
+            if (status != Fw::SerializeStatus::FW_SERIALIZE_OK || argBuf.getBuffLeft() != 0) {
+                this->log_WARNING_HI_DirectiveDeserializeError(stmt.getopCode(), status, argBuf.getBuffLeft(),
+                                                               argBuf.getBuffLength());
+                return false;
+            }
+            directive_setLocalVar_internalInterfaceInvoke(directive);
+            break;
+        }
         default: {
             // unsure what this opcode is. check compiler version matches sequencer
             this->log_WARNING_HI_UnknownSequencerDirective(stmt.getopCode());

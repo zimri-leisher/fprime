@@ -7,6 +7,7 @@ module Svc {
             INVALID = 0x00000000,
             WAIT_REL = 0x00000001,
             WAIT_ABS = 0x00000002,
+            SET_LOCAL_VAR = 0x00000003,
         }
 
         enum StatementType : U8 {
