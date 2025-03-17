@@ -22,6 +22,9 @@ module Svc {
     @ Telemetry input port
     sync input port TlmRecv: Fw.Tlm
 
+    @ port for returning telemetry values by reference
+    sync input port TlmGet: Fw.TlmGet
+
     # ----------------------------------------------------------------------
     # Special ports
     # ----------------------------------------------------------------------

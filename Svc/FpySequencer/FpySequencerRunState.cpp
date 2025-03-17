@@ -215,6 +215,70 @@ bool FpySequencer::dispatchDirective(const Fpy::Statement& stmt) {
             directive_statementBufPop_internalInterfaceInvoke(directive);
             break;
         }
+        case Fpy::DirectiveId::GET_TLM_VAL:
+            // intentional fallthrough. both are handled by same underlying code. this is to cut down on code
+            // duplication. why not make them the same opcode? because I don't want to add another byte that's either 1
+            // or 0, so this is basically using the opcode to store that 1 or 0
+        case Fpy::DirectiveId::GET_TLM_TIME: {
+            FpySequencer_GetTlmDirective directive;
+            FwChanIdType chanId;
+            status = argBuf.deserialize(chanId);
+            if (status != Fw::SerializeStatus::FW_SERIALIZE_OK) {
+                this->log_WARNING_HI_DirectiveDeserializeError(stmt.getopCode(), status, argBuf.getBuffLeft(),
+                                                               argBuf.getBuffLength());
+                return false;
+            }
+            directive.setchanId(chanId);
+            U8 localVarIdx;
+            status = argBuf.deserialize(localVarIdx);
+            if (status != Fw::SerializeStatus::FW_SERIALIZE_OK || argBuf.getBuffLeft() != 0) {
+                this->log_WARNING_HI_DirectiveDeserializeError(stmt.getopCode(), status, argBuf.getBuffLeft(),
+                                                               argBuf.getBuffLength());
+                return false;
+            }
+            directive.set_destVarIdx(localVarIdx);
+
+            // depending on opcode, set correpsonding field
+            if (stmt.getopCode() == Fpy::DirectiveId::GET_TLM_VAL) {
+                directive.set_getTime(false);
+            } else {
+                directive.set_getTime(true);
+            }
+
+            directive_getTlm_internalInterfaceInvoke(directive);
+            break;
+        }
+        case Fpy::DirectiveId::EQ_U64_U64: {
+            FpySequencer_EqualityOpDirective directive;
+            U8 lhs;
+            status = argBuf.deserialize(lhs);
+            if (status != Fw::SerializeStatus::FW_SERIALIZE_OK) {
+                this->log_WARNING_HI_DirectiveDeserializeError(stmt.getopCode(), status, argBuf.getBuffLeft(),
+                                                               argBuf.getBuffLength());
+                return false;
+            }
+            directive.setlhsIdx(lhs);
+            U8 rhs;
+            status = argBuf.deserialize(rhs);
+            if (status != Fw::SerializeStatus::FW_SERIALIZE_OK) {
+                this->log_WARNING_HI_DirectiveDeserializeError(stmt.getopCode(), status, argBuf.getBuffLeft(),
+                                                               argBuf.getBuffLength());
+                return false;
+            }
+            directive.setrhsIdx(rhs);
+            U8 result;
+            status = argBuf.deserialize(result);
+            if (status != Fw::SerializeStatus::FW_SERIALIZE_OK) {
+                this->log_WARNING_HI_DirectiveDeserializeError(stmt.getopCode(), status, argBuf.getBuffLeft(),
+                                                               argBuf.getBuffLength());
+                return false;
+            }
+            directive.setresultIdx(result);
+            directive.set_lhsType(FpySequencer_NumericType::U_64);
+            directive.set_rhsType(FpySequencer_NumericType::U_64);
+            directive_equalityOp_internalInterfaceInvoke(directive);
+            break;
+        }
         default: {
             // unsure what this opcode is. check compiler version matches sequencer
             this->log_WARNING_HI_UnknownSequencerDirective(stmt.getopCode());

@@ -23,6 +23,15 @@
 namespace Svc {
 
 class FpySequencer : public FpySequencerComponentBase {
+    // the reason for this assert is that we need to reserve one local variable index that is guaranteed
+    // to be invalid, so we can use it to signify various things when interpreting directives. we choose
+    // std::numeric_limits<U8>::max() as this index, so we must make sure that the number of local vars
+    // is low enough that this is definitely not valid under all circumstances.
+    static_assert(Svc::Fpy::MAX_SEQUENCE_LOCAL_VARIABLES < std::numeric_limits<U8>::max(),
+                  "MAX_SEQUENCE_LOCAL_VARIABLES must be strictly less than the maximum U8 value");
+
+    static constexpr U8 INVALID_LOCAL_VARIABLE_IDX = std::numeric_limits<U8>::max();
+
   public:
     // ----------------------------------------------------------------------
     // Construction, initialization, and destruction
@@ -300,9 +309,18 @@ class FpySequencer : public FpySequencerComponentBase {
     void directive_statementBufPop_internalInterfaceHandler(
         const Svc::FpySequencer_StatementBufPopDirective& directive) override;
 
-    //! Internal interface handler for directive_directiveBufPush
+    //! Internal interface handler for directive_statementBufPush
     void directive_statementBufPush_internalInterfaceHandler(
         const Svc::FpySequencer_StatementBufPushDirective& directive) override;
+
+    //! Internal interface handler for directive_getTlm
+    void directive_getTlm_internalInterfaceHandler(const Svc::FpySequencer_GetTlmDirective& directive) override;
+
+    //! Internal interface handler for directive_getPrmVal
+    void directive_getPrmVal_internalInterfaceHandler(const Svc::FpySequencer_GetPrmValDirective& directive) override;
+
+    //! Internal interface handler for directive_equalityOp
+    void directive_equalityOp_internalInterfaceHandler(const Svc::FpySequencer_EqualityOpDirective& directive) override;
 
     void parametersLoaded() override;
     void parameterUpdated(FwPrmIdType id) override;
@@ -346,7 +364,7 @@ class FpySequencer : public FpySequencerComponentBase {
     // sequencer and all its state is really just a shell to load
     // and execute this runtime.
     struct Runtime {
-        // the index of the next statement to be executed
+        // the index of the next statement to be executed from the sequence file
         U32 nextStatementIndex = 0;
 
         // the opcode of the statement that is currently executing
@@ -359,6 +377,7 @@ class FpySequencer : public FpySequencerComponentBase {
         Fw::Time wakeupTime = Fw::Time();
 
         // an array containing the values of each local variable in the sequence
+        // these are kinda like registers except they can hold a lot
         struct {
             // the size of the value buf
             FwSizeType valueSize = 0;

@@ -138,6 +138,7 @@ module Ref {
     connections Ref {
       sendBuffComp.Data -> blockDrv.BufferIn
       blockDrv.BufferOut -> recvBuffComp.Data
+      fpySeq.tlmGet -> tlmSend.TlmGet
     }
 
     connections Sequencer {

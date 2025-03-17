@@ -43,6 +43,14 @@ module Svc {
         # least important, lowest prio
         async input port tlmWrite: Svc.Sched priority 1 assert
 
+        @ port to get telemetry from the database. used to set local vars in seq
+        output port tlmGet: Fw.TlmGet
+
+        @ port to get a param from the database. used to set local vars in the seq
+        # we purposefully keep this a separate port from the "local" or component specific
+        # param get port, because that one isn't accessible for component.cpp code
+        output port prmGet: Fw.PrmGet
+
         @ Ping out port
         output port pingOut: Svc.Ping
 
@@ -70,7 +78,7 @@ module Svc {
         @ Port for sending telemetry channels to downlink
         telemetry port tlmOut
 
-        param get port prmGet
+        param get port prmGetLocal
 
         param set port prmSet
 

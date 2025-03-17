@@ -14,9 +14,9 @@ struct SetLocalVarDirective {
     @ the value of the local variable
     value: [Fpy.MAX_LOCAL_VARIABLE_VALUE_SIZE] U8
 
-    @ the length of the value byte array. note, this field is
-    @ implied and is not actually present in the binary form 
-    @ of the directive
+    @ the length of the value byte array. 
+    # note, the underscore signifies this field is implied and 
+    # is not actually present in the binary form of the directive
     _valueSize: FwSizeType
 }
 
@@ -48,6 +48,31 @@ struct StatementBufPopDirective {
     $opcode: FwOpcodeType
 }
 
+struct GetTlmDirective {
+    chanId: FwChanIdType
+    # underscore signifies field is implied, and not actually present in this form
+    # in the seq binary
+    _destVarIdx: U8
+    _getTime: bool
+}
+
+struct GetPrmValDirective {
+    prmId: FwPrmIdType
+    localVarIdx: U8
+}
+
+enum NumericType {
+    U_64 = 0
+}
+
+struct EqualityOpDirective {
+    lhsIdx: U8
+    rhsIdx: U8
+    resultIdx: U8
+    _lhsType: NumericType
+    _rhsType: NumericType
+}
+
 internal port directive_waitRel(directive: WaitRelDirective) priority 6 assert
 
 internal port directive_waitAbs(directive: WaitAbsDirective) priority 6 assert
@@ -61,3 +86,9 @@ internal port directive_if(directive: IfDirective) priority 6 assert
 internal port directive_statementBufPush(directive: StatementBufPushDirective) priority 6 assert
 
 internal port directive_statementBufPop(directive: StatementBufPopDirective) priority 6 assert
+
+internal port directive_getTlm(directive: GetTlmDirective) priority 6 assert
+
+internal port directive_getPrmVal(directive: GetPrmValDirective) priority 6 assert
+
+internal port directive_equalityOp(directive: EqualityOpDirective) priority 6 assert

@@ -12,6 +12,14 @@ module Svc {
             IF = 0x00000005,
             STATEMENT_BUF_PUSH = 0x00000006,
             STATEMENT_BUF_POP = 0x00000007,
+
+            # these next two have diff opcodes but are internally handled by same code
+            GET_TLM_VAL = 0x00000008,
+            GET_TLM_TIME = 0x00000009,
+
+            GET_PRM_VAL = 0x0000000a,
+
+            EQ_U64_U64 = 0x0000000b,
         }
 
         enum StatementType : U8 {

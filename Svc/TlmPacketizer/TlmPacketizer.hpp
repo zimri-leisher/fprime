@@ -63,6 +63,13 @@ class TlmPacketizer final : public TlmPacketizerComponentBase {
                         U32 key                        /*!< Value to return to pinger*/
     );
 
+    //! Handler implementation for TlmGet
+    //!
+    void TlmGet_handler(FwIndexType portNum,
+                        FwChanIdType id,
+                        Fw::Time& timeTag,
+                        Fw::TlmBuffer& val);
+
     //! Implementation for SET_LEVEL command handler
     //! Set telemetry send leve
     void SET_LEVEL_cmdHandler(const FwOpcodeType opCode, /*!< The opcode*/
@@ -101,6 +108,8 @@ class TlmPacketizer final : public TlmPacketizerComponentBase {
         // Offsets into packet buffers.
         // -1 means that channel is not in that packet
         NATIVE_INT_TYPE packetOffset[MAX_PACKETIZER_PACKETS];
+        // the serialized size of the channel
+        NATIVE_UINT_TYPE size;
         TlmEntry* next;             //!< pointer to next bucket in table
         bool used;                  //!< if entry has been used
         bool ignored;               //!< ignored packet id
