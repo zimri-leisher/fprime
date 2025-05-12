@@ -94,6 +94,9 @@ enum { WARN = 3, FATAL = 5 };
 namespace Ref_dpCat {
 enum { WARN = 3, FATAL = 5 };
 }
+namespace Ref_fpySeq {
+enum { WARN = 3, FATAL = 5 };
+}
 }  // namespace PingEntries
 }  // namespace Ref
 #endif

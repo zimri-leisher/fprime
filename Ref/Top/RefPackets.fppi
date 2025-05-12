@@ -5,10 +5,6 @@ telemetry packets RefPackets {
     Ref.rateGroup1Comp.RgMaxTime
     Ref.rateGroup2Comp.RgMaxTime
     Ref.rateGroup3Comp.RgMaxTime
-    Ref.cmdSeq.CS_LoadCommands
-    Ref.cmdSeq.CS_CancelCommands
-    Ref.cmdSeq.CS_CommandsExecuted
-    Ref.cmdSeq.CS_SequencesCompleted
     Ref.fileUplink.FilesReceived
     Ref.fileUplink.PacketsReceived
     Ref.commsBufferManager.TotalBuffs
@@ -20,13 +16,23 @@ telemetry packets RefPackets {
     Ref.comQueue.comQueueDepth
     Ref.comQueue.buffQueueDepth
     # Ref.tlmSend.SendLevel
+    Ref.fpySeq.State
+    Ref.fpySeq.SequencesSucceeded
+    Ref.fpySeq.SequencesFailed
+    Ref.fpySeq.SequencesCancelled
+    Ref.fpySeq.StatementsDispatched
+    Ref.fpySeq.StatementsFailed
+    Ref.fpySeq.SeqPath
+    Ref.fpySeq.DebugBreakpointIdx
+    Ref.fpySeq.Debug
+    Ref.fpySeq.STATEMENT_TIMEOUT_SECS
+    Ref.fpySeq.test_bool_tlm
   }
 
   packet CDHErrors id 2 group 1 {
     Ref.rateGroup1Comp.RgCycleSlips
     Ref.rateGroup2Comp.RgCycleSlips
     Ref.rateGroup3Comp.RgCycleSlips
-    Ref.cmdSeq.CS_Errors
     Ref.fileUplink.Warnings
     Ref.fileDownlink.Warnings
     Ref.$health.PingLateWarnings

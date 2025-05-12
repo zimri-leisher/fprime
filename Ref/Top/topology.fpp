@@ -30,7 +30,7 @@ module Ref {
     instance blockDrv
     instance tlmSend
     instance cmdDisp
-    instance cmdSeq
+    instance fpySeq
     instance comDriver
     instance comStub
     instance comQueue
@@ -136,10 +136,11 @@ module Ref {
 
       # Rate group 2
       rateGroupDriverComp.CycleOut[Ports_RateGroups.rateGroup2] -> rateGroup2Comp.CycleIn
-      rateGroup2Comp.RateGroupMemberOut[0] -> cmdSeq.schedIn
+      rateGroup2Comp.RateGroupMemberOut[0] -> fpySeq.checkTimers
       rateGroup2Comp.RateGroupMemberOut[1] -> sendBuffComp.SchedIn
       rateGroup2Comp.RateGroupMemberOut[2] -> SG3.schedIn
       rateGroup2Comp.RateGroupMemberOut[3] -> SG4.schedIn
+      rateGroup2Comp.RateGroupMemberOut[4] -> fpySeq.tlmWrite
 
       # Rate group 3
       rateGroupDriverComp.CycleOut[Ports_RateGroups.rateGroup3] -> rateGroup3Comp.CycleIn
@@ -158,8 +159,10 @@ module Ref {
     }
 
     connections Sequencer {
-      cmdSeq.comCmdOut -> cmdDisp.seqCmdBuff
-      cmdDisp.seqCmdStatus -> cmdSeq.cmdResponseIn
+      fpySeq.cmdOut -> cmdDisp.seqCmdBuff
+      cmdDisp.seqCmdStatus -> fpySeq.cmdResponseIn
+      fpySeq.getParam -> prmDb.getPrm
+      fpySeq.getTlmChan -> tlmSend.TlmGet
     }
 
     connections Uplink {

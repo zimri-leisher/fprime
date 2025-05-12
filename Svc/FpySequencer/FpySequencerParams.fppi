@@ -3,3 +3,5 @@
 @ accuracy of this timeout is determined by the rate group driving this
 @ component. it will be rounded up
 param STATEMENT_TIMEOUT_SECS: F32 default 0
+
+param TEST_BOOL: bool default false

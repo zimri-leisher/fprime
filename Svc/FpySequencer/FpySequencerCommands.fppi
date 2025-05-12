@@ -53,3 +53,7 @@ async command DEBUG_CONTINUE() \
 @ is valid in all states. This happens automatically when a sequence ends execution.
 async command DEBUG_CLEAR_BREAKPOINT() \
     opcode 7 priority 7 assert
+    
+# @ Steps to the next statement. This command is only valid in the RUNNING.DEBUG_BROKEN state.
+# async command DEBUG_STEP() \
+#     opcode 8 priority 7 assert

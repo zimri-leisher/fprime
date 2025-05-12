@@ -39,3 +39,5 @@ telemetry Debug: DebugTelemetry update on change
 
 @ value of prm STATEMENT_TIMEOUT_SECS
 telemetry STATEMENT_TIMEOUT_SECS: F32 update on change
+
+telemetry test_bool_tlm: bool update on change

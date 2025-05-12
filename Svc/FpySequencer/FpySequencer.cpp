@@ -349,6 +349,10 @@ void FpySequencer::parameterUpdated(FwPrmIdType id) {
             this->tlmWrite_STATEMENT_TIMEOUT_SECS(this->paramGet_STATEMENT_TIMEOUT_SECS(valid));
             break;
         }
+        case PARAMID_TEST_BOOL: {
+            this->tlmWrite_test_bool_tlm(paramGet_TEST_BOOL(valid));
+            break;
+        }
         default: {
             FW_ASSERT(0, static_cast<FwAssertArgType>(id));  // coding error, forgot to include in switch statement
         }

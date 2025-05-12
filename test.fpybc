@@ -1,0 +1,7 @@
+GET_TLM_VAL 2, "Ref.fpySeq.test_bool_tlm"
+IF 2, "false"
+Ref.cmdDisp.CMD_NO_OP_STRING "true"
+GOTO "end"
+false:
+Ref.cmdDisp.CMD_NO_OP_STRING "false"
+end:
