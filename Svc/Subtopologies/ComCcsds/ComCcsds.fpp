@@ -7,6 +7,7 @@ module ComCcsds {
         FILE_QUEUE 
     }
 
+
     # ----------------------------------------------------------------------
     # Active Components
     # ----------------------------------------------------------------------
@@ -45,20 +46,32 @@ module ComCcsds {
         """
     }
 
-    instance cmdSeq: Svc.CmdSequencer base id ComCcsdsConfig.BASE_ID + 0x0200 \
+    instance cmdSeq0: Svc.FpySequencer base id ComCcsdsConfig.BASE_ID + 0x0200 \
         queue size ComCcsdsConfig.QueueSizes.cmdSeq \
         stack size ComCcsdsConfig.StackSizes.cmdSeq \
         priority ComCcsdsConfig.Priorities.cmdSeq \
     {
         phase Fpp.ToCpp.Phases.configComponents """
-        ComCcsds::cmdSeq.allocateBuffer(0, ComCcsds::Allocation::memAllocator, ComCcsdsConfig::BuffMgr::cmdSeqBuffSize);
+        ComCcsds::cmdSeq0.allocateBuffer(0, ComCcsds::Allocation::memAllocator, ComCcsdsConfig::BuffMgr::cmdSeqBuffSize);
         """
 
         phase Fpp.ToCpp.Phases.tearDownComponents """
-        ComCcsds::cmdSeq.deallocateBuffer(ComCcsds::Allocation::memAllocator);
+        ComCcsds::cmdSeq0.deallocateBuffer(ComCcsds::Allocation::memAllocator);
         """
     }
+    instance cmdSeq1: Svc.FpySequencer base id ComCcsdsConfig.BASE_ID + 0x0250 \
+        queue size ComCcsdsConfig.QueueSizes.cmdSeq \
+        stack size ComCcsdsConfig.StackSizes.cmdSeq \
+        priority ComCcsdsConfig.Priorities.cmdSeq \
+    {
+        phase Fpp.ToCpp.Phases.configComponents """
+        ComCcsds::cmdSeq1.allocateBuffer(0, ComCcsds::Allocation::memAllocator, ComCcsdsConfig::BuffMgr::cmdSeqBuffSize);
+        """
 
+        phase Fpp.ToCpp.Phases.tearDownComponents """
+        ComCcsds::cmdSeq1.deallocateBuffer(ComCcsds::Allocation::memAllocator);
+        """
+    }
     # ----------------------------------------------------------------------
     # Passive Components
     # ----------------------------------------------------------------------
@@ -121,10 +134,17 @@ module ComCcsds {
 
     instance apidManager: Svc.Ccsds.ApidManager base id ComCcsdsConfig.BASE_ID + 0x0D00 \
 
+    instance seqDisp: Svc.SeqDispatcher base id ComCcsdsConfig.BASE_ID + 0x0E00 \
+        queue size ComCcsdsConfig.QueueSizes.comQueue \
+        stack size ComCcsdsConfig.StackSizes.comQueue \
+        priority 60
+
     topology Subtopology {
         # Active Components
         instance comQueue
-        instance cmdSeq
+        instance cmdSeq0
+        instance cmdSeq1
+        instance seqDisp
 
         # Passive Components
         instance commsBufferManager

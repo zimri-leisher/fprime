@@ -1,0 +1,6 @@
+goto_start:
+...
+
+
+
+GOTO "goto_start"

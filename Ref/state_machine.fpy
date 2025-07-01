@@ -1,0 +1,11 @@
+sleep(1, 0)
+rateThresh: F32 = 1.0
+
+if Ref.adcs.bodyRatesNorm < rateThresh:
+   CdhCore.cmdDisp.CMD_NO_OP_STRING("rates are low")
+   ComCcsds.seqDisp.RUN("sun_acquisition.bin", Fw.Wait.NO_WAIT) 
+else:
+   ComCcsds.seqDisp.RUN("rate_damp.bin", Fw.Wait.NO_WAIT)
+
+sleep(0, 5000)
+ComCcsds.seqDisp.RUN("state_machine.bin", Fw.Wait.NO_WAIT)

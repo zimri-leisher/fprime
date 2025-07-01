@@ -33,7 +33,7 @@ module Ref {
     stack size Default.STACK_SIZE \
     priority 118
 
-  instance pingRcvr: Ref.PingReceiver base id 0x0A00 \
+  instance adcs: Ref.PingReceiver base id 0x0A00 \
     queue size Default.QUEUE_SIZE \
     stack size Default.STACK_SIZE \
     priority 100

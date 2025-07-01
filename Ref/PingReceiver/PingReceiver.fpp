@@ -13,6 +13,7 @@ module Ref {
     @ The ping input port
     output port PingOut: Svc.Ping
 
+
     # ----------------------------------------------------------------------
     # Special ports
     # ----------------------------------------------------------------------
@@ -37,14 +38,15 @@ module Ref {
 
     @ Telemetry port
     telemetry port Tlm
+    param get port prmget
+    param set port prmset
 
     # ----------------------------------------------------------------------
     # Commands
     # ----------------------------------------------------------------------
 
     @ Command to disable ping response
-    async command PR_StopPings \
-      opcode 0
+    async command PR_StopPings
 
     # ----------------------------------------------------------------------
     # Events
@@ -69,8 +71,22 @@ module Ref {
     # ----------------------------------------------------------------------
 
     @ Number of pings received
-    telemetry PR_NumPings: U32 id 0
+    telemetry PR_NumPings: U32
 
+    telemetry bodyRatesNorm: F32
+    
+    telemetry bodyRates: Vector3
+    telemetry attitude: Quat
+
+    param bodyRatesNorm_fake: F32 default 2.0
+    param bodyRates_fake: Vector3 default [0.0, 0.0, 0.0]
+    param attitude_fake: Quat default {scalar = 0.0, vec = [0.0, 0.0, 0.0]}
+
+    array Vector3 = [3] F32
+    struct Quat {
+      scalar: F32
+      vec: Vector3
+    }
   }
 
 }

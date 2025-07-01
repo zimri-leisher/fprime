@@ -32,7 +32,7 @@ module Ref {
     instance SG5
     instance blockDrv
     instance posixTime
-    instance pingRcvr
+    instance adcs
     instance rateGroup1Comp
     instance rateGroup2Comp
     instance rateGroup3Comp
@@ -87,7 +87,10 @@ module Ref {
 
       # Rate group 2
       rateGroupDriverComp.CycleOut[Ports_RateGroups.rateGroup2] -> rateGroup2Comp.CycleIn
-      rateGroup2Comp.RateGroupMemberOut[0] -> ComCcsds.cmdSeq.schedIn
+      rateGroup2Comp.RateGroupMemberOut[0] -> ComCcsds.cmdSeq0.checkTimers
+      rateGroup2Comp.RateGroupMemberOut[4] -> ComCcsds.cmdSeq0.tlmWrite
+      rateGroup2Comp.RateGroupMemberOut[5] -> ComCcsds.cmdSeq1.checkTimers
+      rateGroup2Comp.RateGroupMemberOut[6] -> ComCcsds.cmdSeq1.tlmWrite
       rateGroup2Comp.RateGroupMemberOut[1] -> sendBuffComp.SchedIn
       rateGroup2Comp.RateGroupMemberOut[2] -> SG3.schedIn
       rateGroup2Comp.RateGroupMemberOut[3] -> SG4.schedIn
@@ -124,10 +127,23 @@ module Ref {
       CdhCore.tlmSend.PktSend            -> ComCcsds.comQueue.comPacketQueueIn[ComCcsds.Ports_ComPacketQueue.TELEMETRY]
 
       # Router <-> CmdDispatcher
-      ComCcsds.fprimeRouter.commandOut  -> CdhCore.cmdDisp.seqCmdBuff
-      CdhCore.cmdDisp.seqCmdStatus     -> ComCcsds.fprimeRouter.cmdResponseIn
-      ComCcsds.cmdSeq.comCmdOut -> CdhCore.cmdDisp.seqCmdBuff
-      CdhCore.cmdDisp.seqCmdStatus -> ComCcsds.cmdSeq.cmdResponseIn
+      ComCcsds.fprimeRouter.commandOut  -> CdhCore.cmdDisp.seqCmdBuff[0]
+      CdhCore.cmdDisp.seqCmdStatus[0]     -> ComCcsds.fprimeRouter.cmdResponseIn
+      ComCcsds.cmdSeq0.cmdOut -> CdhCore.cmdDisp.seqCmdBuff[1]
+      ComCcsds.cmdSeq1.cmdOut -> CdhCore.cmdDisp.seqCmdBuff[2]
+      CdhCore.cmdDisp.seqCmdStatus[1] -> ComCcsds.cmdSeq0.cmdResponseIn
+      CdhCore.cmdDisp.seqCmdStatus[2] -> ComCcsds.cmdSeq1.cmdResponseIn
+
+      ComCcsds.seqDisp.seqRunOut[0] -> ComCcsds.cmdSeq0.seqRunIn
+      ComCcsds.seqDisp.seqRunOut[1] -> ComCcsds.cmdSeq1.seqRunIn
+
+      ComCcsds.cmdSeq0.seqStartOut -> ComCcsds.seqDisp.seqStartIn[0]
+      ComCcsds.cmdSeq0.seqDoneOut -> ComCcsds.seqDisp.seqDoneIn[0]
+      ComCcsds.cmdSeq0.getTlmChan -> CdhCore.tlmSend.TlmGet
+
+      ComCcsds.cmdSeq1.seqStartOut -> ComCcsds.seqDisp.seqStartIn[1]
+      ComCcsds.cmdSeq1.seqDoneOut -> ComCcsds.seqDisp.seqDoneIn[1]
+      ComCcsds.cmdSeq1.getTlmChan -> CdhCore.tlmSend.TlmGet
     }
 
     connections ComCcsds_FileHandling {

@@ -59,4 +59,19 @@ namespace Ref {
       this->cmdResponse_out(opCode,cmdSeq,Fw::CmdResponse::OK);
   }
 
+
+
+  void PingReceiverComponentImpl::parametersLoaded() {
+    Fw::ParamValid valid;
+    this->tlmWrite_bodyRatesNorm(this->paramGet_bodyRatesNorm_fake(valid));
+    this->tlmWrite_bodyRates(this->paramGet_bodyRates_fake(valid));
+    this->tlmWrite_attitude(this->paramGet_attitude_fake(valid));
+  }
+  void PingReceiverComponentImpl::parameterUpdated(FwPrmIdType id) {
+    Fw::ParamValid valid;
+    this->tlmWrite_bodyRatesNorm(this->paramGet_bodyRatesNorm_fake(valid));
+    this->tlmWrite_bodyRates(this->paramGet_bodyRates_fake(valid));
+    this->tlmWrite_attitude(this->paramGet_attitude_fake(valid));
+  }
+
 } // end namespace Ref

@@ -12,6 +12,7 @@
 #include <Os/File.hpp>
 #include <Os/Posix/File.hpp>
 #include <Os/Posix/error.hpp>
+#include <cstdio>
 
 namespace Os {
 namespace Posix {

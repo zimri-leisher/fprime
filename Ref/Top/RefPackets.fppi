@@ -9,10 +9,13 @@ telemetry packets RefPackets {
     FileHandling.fileDownlink.PacketsSent
     FileHandling.fileManager.CommandsExecuted
 
-    ComCcsds.cmdSeq.CS_LoadCommands
-    ComCcsds.cmdSeq.CS_CancelCommands
-    ComCcsds.cmdSeq.CS_CommandsExecuted
-    ComCcsds.cmdSeq.CS_SequencesCompleted
+    ComCcsds.cmdSeq0.State
+    ComCcsds.cmdSeq1.STATEMENT_TIMEOUT_SECS
+
+    ComCcsds.seqDisp.dispatchedCount
+    ComCcsds.seqDisp.errorCount
+    ComCcsds.seqDisp.sequencersAvailable
+
     ComCcsds.comQueue.comQueueDepth
     ComCcsds.comQueue.buffQueueDepth
     ComCcsds.commsBufferManager.TotalBuffs
@@ -32,7 +35,6 @@ telemetry packets RefPackets {
     FileHandling.fileDownlink.Warnings
     FileHandling.fileManager.Errors
 
-    ComCcsds.cmdSeq.CS_Errors
     ComCcsds.commsBufferManager.NoBuffs
     ComCcsds.commsBufferManager.EmptyBuffs
 
@@ -42,7 +44,10 @@ telemetry packets RefPackets {
   }
 
   packet DriveTlm id 3 group 1 {
-    Ref.pingRcvr.PR_NumPings
+    Ref.adcs.PR_NumPings
+    Ref.adcs.bodyRatesNorm
+    Ref.adcs.bodyRates
+    Ref.adcs.attitude
     Ref.sendBuffComp.PacketsSent
     Ref.sendBuffComp.NumErrorsInjected
     Ref.sendBuffComp.Parameter3
@@ -273,4 +278,24 @@ telemetry packets RefPackets {
 
 } omit {
   CdhCore.cmdDisp.CommandErrors
+    ComCcsds.cmdSeq0.SequencesSucceeded
+    ComCcsds.cmdSeq0.SequencesFailed
+    ComCcsds.cmdSeq0.SequencesCancelled
+    ComCcsds.cmdSeq0.StatementsDispatched
+    ComCcsds.cmdSeq0.StatementsFailed
+    ComCcsds.cmdSeq0.LastDirectiveError
+    ComCcsds.cmdSeq0.SeqPath
+    ComCcsds.cmdSeq0.DebugBreakpointIdx
+    ComCcsds.cmdSeq0.Debug
+    ComCcsds.cmdSeq0.STATEMENT_TIMEOUT_SECS
+    ComCcsds.cmdSeq1.State
+    ComCcsds.cmdSeq1.SequencesSucceeded
+    ComCcsds.cmdSeq1.SequencesFailed
+    ComCcsds.cmdSeq1.SequencesCancelled
+    ComCcsds.cmdSeq1.StatementsDispatched
+    ComCcsds.cmdSeq1.StatementsFailed
+    ComCcsds.cmdSeq1.LastDirectiveError
+    ComCcsds.cmdSeq1.SeqPath
+    ComCcsds.cmdSeq1.DebugBreakpointIdx
+    ComCcsds.cmdSeq1.Debug
 }

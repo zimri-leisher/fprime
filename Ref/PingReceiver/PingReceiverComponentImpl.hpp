@@ -58,6 +58,8 @@ namespace Ref {
       bool m_inhibitPings;
       U32 m_pingsRecvd;
 
+      void parameterUpdated(FwPrmIdType id) override;
+          void parametersLoaded() override;
 
     };
 
