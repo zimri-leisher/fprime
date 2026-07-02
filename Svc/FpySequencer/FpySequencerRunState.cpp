@@ -246,6 +246,20 @@ Fw::Success FpySequencer::deserializeDirective(const Fpy::Statement& stmt, Direc
             deserializedDirective.stackOp.set__op(stmt.get_opCode());
             break;
         }
+        // fallthrough on purpose
+        case Fpy::DirectiveId::FFLOOR:
+        case Fpy::DirectiveId::IABS:
+        case Fpy::DirectiveId::FABS: {
+            new (&deserializedDirective.mathOp) FpySequencer_MathOpDirective();
+            if (argBuf.getDeserializeSizeLeft() != 0) {
+                this->log_WARNING_HI_DirectiveDeserializeError(stmt.get_opCode(), this->currentStatementIdx(),
+                                                               Fw::SerializeStatus::FW_DESERIALIZE_SIZE_MISMATCH,
+                                                               argBuf.getDeserializeSizeLeft(), argBuf.getSize());
+                return Fw::Success::FAILURE;
+            }
+            deserializedDirective.mathOp.set__op(stmt.get_opCode());
+            break;
+        }
         case Fpy::DirectiveId::EXIT: {
             new (&deserializedDirective.exit) FpySequencer_ExitDirective();
             if (argBuf.getDeserializeSizeLeft() != 0) {
@@ -482,7 +496,10 @@ Fw::Success FpySequencer::deserializeDirective(const Fpy::Statement& stmt, Direc
 // dispatches a deserialized sequencer directive to the right handler.
 void FpySequencer::dispatchDirective(const DirectiveUnion& directive, const Fpy::DirectiveId& id) {
     switch (id) {
-        case Fpy::DirectiveId::INVALID: {
+        // POP_SERIALIZABLE is reserved/unimplemented; deserializeDirective rejects it
+        // before dispatch, so reaching here with either id is a coding error.
+        case Fpy::DirectiveId::INVALID:
+        case Fpy::DirectiveId::POP_SERIALIZABLE: {
             // coding err
             FW_ASSERT(0);
             return;
@@ -573,6 +590,13 @@ void FpySequencer::dispatchDirective(const DirectiveUnion& directive, const Fpy:
         case Fpy::DirectiveId::ITRUNC_64_16:
         case Fpy::DirectiveId::ITRUNC_64_32: {
             this->directive_stackOp_internalInterfaceInvoke(directive.stackOp);
+            return;
+        }
+        // fallthrough on purpose
+        case Fpy::DirectiveId::FFLOOR:
+        case Fpy::DirectiveId::IABS:
+        case Fpy::DirectiveId::FABS: {
+            this->directive_mathOp_internalInterfaceInvoke(directive.mathOp);
             return;
         }
         case Fpy::DirectiveId::EXIT: {

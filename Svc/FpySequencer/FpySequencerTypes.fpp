@@ -109,6 +109,13 @@ module Svc {
             POP_EVENT = 75
             SET_SEED = 76
             PUSH_RAND = 77
+            POP_SERIALIZABLE = 78
+            # math op directives
+            # all of these are handled at the CPP level by one MathOpDirective to save boilerplate
+            # you MUST keep them all in between FFLOOR and FABS inclusive
+            FFLOOR = 79
+            IABS = 80
+            FABS = 81
         }
 
         enum DirectiveErrorCode : U8 {

@@ -65,6 +65,12 @@ struct StackOpDirective {
     _op: Fpy.DirectiveId
 }
 
+@ performs a math function on the stack, selected by the op id
+struct MathOpDirective {
+    @ which math op to perform
+    _op: Fpy.DirectiveId
+}
+
 @ ends the sequence
 struct ExitDirective {
     # pops U8 off the stack
@@ -214,6 +220,8 @@ internal port directive_pushPrm(directive: PushPrmDirective) priority 6 assert
 internal port directive_constCmd(directive: ConstCmdDirective) priority 6 assert
 
 internal port directive_stackOp(directive: StackOpDirective) priority 6 assert
+
+internal port directive_mathOp(directive: MathOpDirective) priority 6 assert
 
 internal port directive_exit(directive: ExitDirective) priority 6 assert
 

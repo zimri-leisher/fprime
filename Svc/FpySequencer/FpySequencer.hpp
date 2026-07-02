@@ -58,6 +58,7 @@ class FpySequencer : public FpySequencerComponentBase {
         FpySequencer_PushPrmDirective pushPrm;
         FpySequencer_ConstCmdDirective constCmd;
         FpySequencer_StackOpDirective stackOp;
+        FpySequencer_MathOpDirective mathOp;
         FpySequencer_ExitDirective exit;
         FpySequencer_AllocateDirective allocate;
         FpySequencer_StoreRelConstOffsetDirective storeRelConstOffset;
@@ -567,6 +568,9 @@ class FpySequencer : public FpySequencerComponentBase {
     //! Internal interface handler for directive_stackOp
     void directive_stackOp_internalInterfaceHandler(const Svc::FpySequencer_StackOpDirective& directive) override;
 
+    //! Internal interface handler for directive_mathOp
+    void directive_mathOp_internalInterfaceHandler(const Svc::FpySequencer_MathOpDirective& directive) override;
+
     //! Internal interface handler for directive_exit
     void directive_exit_internalInterfaceHandler(const Svc::FpySequencer_ExitDirective& directive) override;
 
@@ -840,7 +844,9 @@ class FpySequencer : public FpySequencerComponentBase {
     Signal pushPrm_directiveHandler(const FpySequencer_PushPrmDirective& directive, DirectiveError& error);
     Signal constCmd_directiveHandler(const FpySequencer_ConstCmdDirective& directive, DirectiveError& error);
     Signal stackOp_directiveHandler(const FpySequencer_StackOpDirective& directive, DirectiveError& error);
+    Signal mathOp_directiveHandler(const FpySequencer_MathOpDirective& directive, DirectiveError& error);
 
+    // dispatched by stackOp_directiveHandler
     DirectiveError op_or();
     DirectiveError op_and();
     DirectiveError op_ieq();
@@ -877,7 +883,6 @@ class FpySequencer : public FpySequencerComponentBase {
     DirectiveError op_fsub();
     DirectiveError op_fmul();
     DirectiveError op_fdiv();
-    DirectiveError op_float_floor_div();
     DirectiveError op_fpow();
     DirectiveError op_flog();
     DirectiveError op_fmod();
@@ -890,6 +895,10 @@ class FpySequencer : public FpySequencerComponentBase {
     DirectiveError op_itrunc_64_8();
     DirectiveError op_itrunc_64_16();
     DirectiveError op_itrunc_64_32();
+    // dispatched by mathOp_directiveHandler
+    DirectiveError op_ffloor();
+    DirectiveError op_iabs();
+    DirectiveError op_fabs();
 
     Signal exit_directiveHandler(const FpySequencer_ExitDirective& directive, DirectiveError& error);
     Signal allocate_directiveHandler(const FpySequencer_AllocateDirective& directive, DirectiveError& error);

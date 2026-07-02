@@ -145,6 +145,13 @@ void FpySequencer::directive_stackOp_internalInterfaceHandler(const Svc::FpySequ
     handleDirectiveErrorCode(directive.get__op(), error);
 }
 
+//! Internal interface handler for directive_mathOp
+void FpySequencer::directive_mathOp_internalInterfaceHandler(const Svc::FpySequencer_MathOpDirective& directive) {
+    DirectiveError error = DirectiveError::NO_ERROR;
+    this->sendSignal(this->mathOp_directiveHandler(directive, error));
+    handleDirectiveErrorCode(directive.get__op(), error);
+}
+
 //! Internal interface handler for directive_exit
 void FpySequencer::directive_exit_internalInterfaceHandler(const Svc::FpySequencer_ExitDirective& directive) {
     DirectiveError error = DirectiveError::NO_ERROR;
@@ -951,6 +958,9 @@ Signal FpySequencer::stackOp_directiveHandler(const FpySequencer_StackOpDirectiv
               static_cast<FwAssertArgType>(directive.get__op()));
 
     switch (directive.get__op()) {
+        default:
+            FW_ASSERT(0, directive.get__op());
+            break;
         case Fpy::DirectiveId::OR:
             error = this->op_or();
             break;
@@ -1095,14 +1105,71 @@ Signal FpySequencer::stackOp_directiveHandler(const FpySequencer_StackOpDirectiv
         case Fpy::DirectiveId::ITRUNC_64_32:
             error = this->op_itrunc_64_32();
             break;
+    }
+    if (error != DirectiveError::NO_ERROR) {
+        return Signal::stmtResponse_failure;
+    }
+    return Signal::stmtResponse_success;
+}
+
+Signal FpySequencer::mathOp_directiveHandler(const FpySequencer_MathOpDirective& directive, DirectiveError& error) {
+    // coding error, should not have gotten to this math op handler
+    FW_ASSERT(directive.get__op() >= Fpy::DirectiveId::FFLOOR && directive.get__op() <= Fpy::DirectiveId::FABS,
+              static_cast<FwAssertArgType>(directive.get__op()));
+
+    switch (directive.get__op()) {
         default:
             FW_ASSERT(0, directive.get__op());
+            break;
+        case Fpy::DirectiveId::FFLOOR:
+            error = this->op_ffloor();
+            break;
+        case Fpy::DirectiveId::IABS:
+            error = this->op_iabs();
+            break;
+        case Fpy::DirectiveId::FABS:
+            error = this->op_fabs();
             break;
     }
     if (error != DirectiveError::NO_ERROR) {
         return Signal::stmtResponse_failure;
     }
     return Signal::stmtResponse_success;
+}
+
+// Floors an F64 toward -inf. inf/nan pass through unchanged (std::floor already
+// does this), matching wasm's f64.floor and Python model's handle_ffloor.
+DirectiveError FpySequencer::op_ffloor() {
+    if (this->m_runtime.stack.size < sizeof(F64)) {
+        return DirectiveError::STACK_UNDERFLOW;
+    }
+    F64 val = this->m_runtime.stack.pop<F64>();
+    this->m_runtime.stack.push(static_cast<F64>(std::floor(val)));
+    return DirectiveError::NO_ERROR;
+}
+
+// Absolute value of a signed I64. abs(I64 min) wraps back to I64 min rather than
+// trapping, matching libm's llabs and LLVM's llvm.abs. The negation is done
+// through U64 so the wraparound is well-defined (signed overflow would be UB).
+DirectiveError FpySequencer::op_iabs() {
+    if (this->m_runtime.stack.size < sizeof(I64)) {
+        return DirectiveError::STACK_UNDERFLOW;
+    }
+    I64 val = this->m_runtime.stack.pop<I64>();
+    U64 magnitude = (val < 0) ? (0u - static_cast<U64>(val)) : static_cast<U64>(val);
+    this->m_runtime.stack.push(static_cast<I64>(magnitude));
+    return DirectiveError::NO_ERROR;
+}
+
+// Absolute value of an F64. Clears the sign bit (so -0.0 becomes +0.0 and
+// nan/inf magnitudes pass through), matching llvm.fabs and Python's math.fabs.
+DirectiveError FpySequencer::op_fabs() {
+    if (this->m_runtime.stack.size < sizeof(F64)) {
+        return DirectiveError::STACK_UNDERFLOW;
+    }
+    F64 val = this->m_runtime.stack.pop<F64>();
+    this->m_runtime.stack.push(static_cast<F64>(std::fabs(val)));
+    return DirectiveError::NO_ERROR;
 }
 
 Signal FpySequencer::exit_directiveHandler(const FpySequencer_ExitDirective& directive, DirectiveError& error) {
