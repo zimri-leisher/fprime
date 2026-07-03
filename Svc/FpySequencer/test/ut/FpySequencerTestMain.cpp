@@ -2,6 +2,8 @@
 // TestMain.cpp
 // ----------------------------------------------------------------------
 
+#include <cmath>
+#include <limits>
 #include "FpySequencerTester.hpp"
 #include "Fw/Com/ComPacket.hpp"
 #include "Fw/Types/MallocAllocator.hpp"
@@ -382,6 +384,44 @@ TEST_F(FpySequencerTester, stackOp) {
     // Test invalid operation
     FpySequencer_StackOpDirective directiveInvalid(Fpy::DirectiveId::NO_OP);
     ASSERT_DEATH_IF_SUPPORTED(tester_stackOp_directiveHandler(directiveInvalid, err), "Assert: ");
+}
+
+TEST_F(FpySequencerTester, mathOp) {
+    DirectiveError err = DirectiveError::NO_ERROR;
+
+    // Test FFLOOR (floor a float toward -inf)
+    FpySequencer_MathOpDirective directiveFfloor(Fpy::DirectiveId::FFLOOR);
+    tester_push<F64>(3.7);
+    Signal result = tester_mathOp_directiveHandler(directiveFfloor, err);
+    ASSERT_EQ(result, Signal::stmtResponse_success);
+    ASSERT_EQ(err, DirectiveError::NO_ERROR);
+    ASSERT_EQ(tester_pop<F64>(), 3.0);
+
+    // Test IABS (absolute value of a signed integer)
+    FpySequencer_MathOpDirective directiveIabs(Fpy::DirectiveId::IABS);
+    tester_push<I64>(-5);
+    result = tester_mathOp_directiveHandler(directiveIabs, err);
+    ASSERT_EQ(result, Signal::stmtResponse_success);
+    ASSERT_EQ(err, DirectiveError::NO_ERROR);
+    ASSERT_EQ(tester_pop<I64>(), 5);
+
+    // Test FABS (absolute value of a float)
+    FpySequencer_MathOpDirective directiveFabs(Fpy::DirectiveId::FABS);
+    tester_push<F64>(-2.5);
+    result = tester_mathOp_directiveHandler(directiveFabs, err);
+    ASSERT_EQ(result, Signal::stmtResponse_success);
+    ASSERT_EQ(err, DirectiveError::NO_ERROR);
+    ASSERT_EQ(tester_pop<F64>(), 2.5);
+
+    // Test out-of-bounds stack access (empty stack)
+    FpySequencer_MathOpDirective directiveOOB(Fpy::DirectiveId::FFLOOR);
+    result = tester_mathOp_directiveHandler(directiveOOB, err);
+    ASSERT_EQ(result, Signal::stmtResponse_failure);
+    ASSERT_EQ(err, DirectiveError::STACK_UNDERFLOW);
+
+    // Test invalid operation (not a math op)
+    FpySequencer_MathOpDirective directiveInvalid(Fpy::DirectiveId::NO_OP);
+    ASSERT_DEATH_IF_SUPPORTED(tester_mathOp_directiveHandler(directiveInvalid, err), "Assert: ");
 }
 
 TEST_F(FpySequencerTester, ieq) {
@@ -913,6 +953,57 @@ TEST_F(FpySequencerTester, fmod) {
 }
 
 // ======================================================================
+// Math op tests (FFLOOR, IABS, FABS)
+// ======================================================================
+TEST_F(FpySequencerTester, ffloor) {
+    tester_push<F64>(3.7);
+    ASSERT_EQ(tester_op_ffloor(), DirectiveError::NO_ERROR);
+    ASSERT_EQ(tester_pop<F64>(), 3.0);
+    // negative values floor toward -inf, not toward zero
+    tester_push<F64>(-2.5);
+    ASSERT_EQ(tester_op_ffloor(), DirectiveError::NO_ERROR);
+    ASSERT_EQ(tester_pop<F64>(), -3.0);
+    // inf passes through unchanged (matches wasm f64.floor)
+    tester_push<F64>(std::numeric_limits<F64>::infinity());
+    ASSERT_EQ(tester_op_ffloor(), DirectiveError::NO_ERROR);
+    ASSERT_EQ(tester_pop<F64>(), std::numeric_limits<F64>::infinity());
+    // nan passes through unchanged
+    tester_push<F64>(std::numeric_limits<F64>::quiet_NaN());
+    ASSERT_EQ(tester_op_ffloor(), DirectiveError::NO_ERROR);
+    ASSERT_TRUE(std::isnan(tester_pop<F64>()));
+}
+
+TEST_F(FpySequencerTester, iabs) {
+    tester_push<I64>(-123);
+    ASSERT_EQ(tester_op_iabs(), DirectiveError::NO_ERROR);
+    ASSERT_EQ(tester_pop<I64>(), 123);
+    // positive value passes through unchanged
+    tester_push<I64>(123);
+    ASSERT_EQ(tester_op_iabs(), DirectiveError::NO_ERROR);
+    ASSERT_EQ(tester_pop<I64>(), 123);
+    // abs(I64 min) wraps back to I64 min rather than trapping (matches llabs / llvm.abs)
+    tester_push<I64>(std::numeric_limits<I64>::min());
+    ASSERT_EQ(tester_op_iabs(), DirectiveError::NO_ERROR);
+    ASSERT_EQ(tester_pop<I64>(), std::numeric_limits<I64>::min());
+}
+
+TEST_F(FpySequencerTester, fabs) {
+    tester_push<F64>(-123.0);
+    ASSERT_EQ(tester_op_fabs(), DirectiveError::NO_ERROR);
+    ASSERT_EQ(tester_pop<F64>(), 123.0);
+    // -0.0 becomes +0.0 (sign bit cleared, matches llvm.fabs)
+    tester_push<F64>(-0.0);
+    ASSERT_EQ(tester_op_fabs(), DirectiveError::NO_ERROR);
+    F64 absZero = tester_pop<F64>();
+    ASSERT_EQ(absZero, 0.0);
+    ASSERT_FALSE(std::signbit(absZero));
+    // -inf becomes +inf
+    tester_push<F64>(-std::numeric_limits<F64>::infinity());
+    ASSERT_EQ(tester_op_fabs(), DirectiveError::NO_ERROR);
+    ASSERT_EQ(tester_pop<F64>(), std::numeric_limits<F64>::infinity());
+}
+
+// ======================================================================
 // Binary op stack underflow tests
 // Each binary op is tested with an empty stack and with only one operand.
 // ======================================================================
@@ -1118,6 +1209,15 @@ TEST_F(FpySequencerTester, uitofp_underflow) {
 }
 TEST_F(FpySequencerTester, flog_underflow) {
     ASSERT_EQ(tester_op_flog(), DirectiveError::STACK_UNDERFLOW);
+}
+TEST_F(FpySequencerTester, ffloor_underflow) {
+    ASSERT_EQ(tester_op_ffloor(), DirectiveError::STACK_UNDERFLOW);
+}
+TEST_F(FpySequencerTester, iabs_underflow) {
+    ASSERT_EQ(tester_op_iabs(), DirectiveError::STACK_UNDERFLOW);
+}
+TEST_F(FpySequencerTester, fabs_underflow) {
+    ASSERT_EQ(tester_op_fabs(), DirectiveError::STACK_UNDERFLOW);
 }
 TEST_F(FpySequencerTester, siext_8_64_underflow) {
     ASSERT_EQ(tester_op_siext_8_64(), DirectiveError::STACK_UNDERFLOW);
@@ -3360,6 +3460,26 @@ TEST_F(FpySequencerTester, deserialize_stackOp) {
     seq.get_statements()[0].get_argBuf().serializeFrom(123);
     result = tester_deserializeDirective(seq.get_statements()[0], actual);
     // caught two bugs (one here, and it reminded me of this somewhere else)
+    ASSERT_EQ(result, Fw::Success::FAILURE);
+    ASSERT_EVENTS_DirectiveDeserializeError_SIZE(1);
+    this->clearHistory();
+    // clear args, make sure it succeeds
+    seq.get_statements()[0].get_argBuf().resetSer();
+    result = tester_deserializeDirective(seq.get_statements()[0], actual);
+    ASSERT_EQ(result, Fw::Success::SUCCESS);
+    ASSERT_EVENTS_DirectiveDeserializeError_SIZE(0);
+}
+
+TEST_F(FpySequencerTester, deserialize_mathOp) {
+    FpySequencer::DirectiveUnion actual;
+    FpySequencer_MathOpDirective dir(Fpy::DirectiveId::FFLOOR);
+    add_MATH_OP(Fpy::DirectiveId::FFLOOR);
+    Fw::Success result = tester_deserializeDirective(seq.get_statements()[0], actual);
+    ASSERT_EQ(result, Fw::Success::SUCCESS);
+    ASSERT_EQ(actual.mathOp, dir);
+    // write some junk after buf, make sure it fails
+    seq.get_statements()[0].get_argBuf().serializeFrom(123);
+    result = tester_deserializeDirective(seq.get_statements()[0], actual);
     ASSERT_EQ(result, Fw::Success::FAILURE);
     ASSERT_EVENTS_DirectiveDeserializeError_SIZE(1);
     this->clearHistory();

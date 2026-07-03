@@ -244,6 +244,11 @@ void FpySequencerTester::add_STACK_OP(Fpy::DirectiveId op) {
     addDirective(op, buf);
 }
 
+void FpySequencerTester::add_MATH_OP(Fpy::DirectiveId op) {
+    Fw::StatementArgBuffer buf;
+    addDirective(op, buf);
+}
+
 void FpySequencerTester::add_EXIT() {
     Fw::StatementArgBuffer buf;
     addDirective(Fpy::DirectiveId::EXIT, buf);
@@ -514,6 +519,11 @@ Signal FpySequencerTester::tester_constCmd_directiveHandler(const FpySequencer_C
 Signal FpySequencerTester::tester_stackOp_directiveHandler(const FpySequencer_StackOpDirective& directive,
                                                            DirectiveError& err) {
     return this->cmp.stackOp_directiveHandler(directive, err);
+}
+
+Signal FpySequencerTester::tester_mathOp_directiveHandler(const FpySequencer_MathOpDirective& directive,
+                                                          DirectiveError& err) {
+    return this->cmp.mathOp_directiveHandler(directive, err);
 }
 
 Signal FpySequencerTester::tester_discard_directiveHandler(const FpySequencer_DiscardDirective& directive,
@@ -843,6 +853,15 @@ DirectiveError FpySequencerTester::tester_op_flog() {
 }
 DirectiveError FpySequencerTester::tester_op_fmod() {
     return this->cmp.op_fmod();
+}
+DirectiveError FpySequencerTester::tester_op_ffloor() {
+    return this->cmp.op_ffloor();
+}
+DirectiveError FpySequencerTester::tester_op_iabs() {
+    return this->cmp.op_iabs();
+}
+DirectiveError FpySequencerTester::tester_op_fabs() {
+    return this->cmp.op_fabs();
 }
 DirectiveError FpySequencerTester::tester_op_siext_8_64() {
     return this->cmp.op_siext_8_64();

@@ -99,6 +99,7 @@ class FpySequencerTester : public FpySequencerGTestBase, public ::testing::Test 
     void add_CONST_CMD(FwOpcodeType opcode);
     void add_CONST_CMD(FpySequencer_ConstCmdDirective dir);
     void add_STACK_OP(Fpy::DirectiveId op);
+    void add_MATH_OP(Fpy::DirectiveId op);
     void add_EXIT();
     void add_ALLOCATE(Fpy::StackSizeType size);
     void add_ALLOCATE(FpySequencer_AllocateDirective dir);
@@ -171,6 +172,7 @@ class FpySequencerTester : public FpySequencerGTestBase, public ::testing::Test 
     Signal tester_exit_directiveHandler(const FpySequencer_ExitDirective& directive, DirectiveError& err);
     Signal tester_constCmd_directiveHandler(const FpySequencer_ConstCmdDirective& directive, DirectiveError& err);
     Signal tester_stackOp_directiveHandler(const FpySequencer_StackOpDirective& directive, DirectiveError& err);
+    Signal tester_mathOp_directiveHandler(const FpySequencer_MathOpDirective& directive, DirectiveError& err);
     Signal tester_discard_directiveHandler(const FpySequencer_DiscardDirective& directive, DirectiveError& err);
     Signal tester_stackCmd_directiveHandler(const FpySequencer_StackCmdDirective& directive, DirectiveError& err);
     Signal tester_memCmp_directiveHandler(const FpySequencer_MemCmpDirective& directive, DirectiveError& err);
@@ -240,6 +242,9 @@ class FpySequencerTester : public FpySequencerGTestBase, public ::testing::Test 
     DirectiveError tester_op_itrunc_64_8();
     DirectiveError tester_op_itrunc_64_16();
     DirectiveError tester_op_itrunc_64_32();
+    DirectiveError tester_op_ffloor();
+    DirectiveError tester_op_iabs();
+    DirectiveError tester_op_fabs();
     FpySequencer::Runtime* tester_get_m_runtime_ptr();
     Fw::ExternalSerializeBuffer* tester_get_m_sequenceBuffer_ptr();
     void tester_set_m_sequencesStarted(U64 val);
